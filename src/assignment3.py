@@ -170,7 +170,7 @@ plt.show()
 # **Exercise 1.2** Motivate the results in (2.9) of \[[1](#References)\] in terms of the results about the mean, covariance matrix, and distribution of linear functions of (Gaussian) variables.
 #     
 # **Answer**
-#     
+# TODO
 # </div>
 
 # ## 1.1. The Covariance Function
@@ -250,6 +250,20 @@ def plot_sine_kernel(periodicity=1.5, length_scale=1.0):
 
 def plot_GP_prior(X, kernel, num_samples):
     # TODO: Implement
+    # SOLUTION_START
+    samples = np.random.multivariate_normal(mean=np.zeros(X.shape[0]), cov=kernel(X), size=num_samples)
+    confidence_interval = 1.96 * np.sqrt(np.diag(kernel(X)))
+    plt.figure(figsize=(8, 4))
+    for i in range(num_samples):
+        plt.plot(X, samples[i], lw=1, linestyle='--', label=f'Sample {i+1}')
+    plt.fill_between(X.flatten(), -confidence_interval, confidence_interval, color='gray', alpha=0.2)
+    plt.axhline(0, color='black', lw=1,label='Mean' )
+    plt.title("GP Prior")
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.legend()
+    plt.show()
+
 
 
 # +
@@ -294,8 +308,9 @@ print(model.kernel_.get_params())
 #     
 #    </div>
 
-def plot_GP_posterior(X, y, X_new, y_pred_mean, y_pred_std, samples 
-                     ):
+# +
+
+def plot_GP_posterior(X, y, X_new, y_pred_mean, y_pred_std, samples):
     '''Plot samples from the posterior predictive distribution for new
     input data points.
     
@@ -315,7 +330,28 @@ def plot_GP_posterior(X, y, X_new, y_pred_mean, y_pred_std, samples
         New function samples from the posterior predictive distribution.
     '''
     # TODO: Implement
+    # SOLUTION_START
+    plt.figure(figsize=(8, 4))
+    plt.plot(X.flatten(), y.flatten(), 'ro', label='Observed')
+    
+    plt.plot(X_new.flatten(), y_pred_mean, 'k-', label='Mean')
+    plt.fill_between(
+        X_new.flatten(),
+        y_pred_mean - 1.96 * y_pred_std,
+        y_pred_mean + 1.96 * y_pred_std,
+        color='gray', alpha=0.2, label='95% CI'
+    )
+    
+    for i in range(samples.shape[1]):
+        plt.plot(X_new.flatten(), samples[:, i], lw=1, linestyle='--', label=f'Sample {i+1}')
+    
+    plt.title("GP Posterior")
+    plt.xlabel("x")
+    plt.ylabel("f(x)")
+    plt.legend()
+    plt.show()
 
+   
 
 # +
 # Choose a number of new input points - draw enough, so that when we 
@@ -323,6 +359,10 @@ def plot_GP_posterior(X, y, X_new, y_pred_mean, y_pred_std, samples
 X_new = np.linspace(-0.2,1.2).reshape(-1,1)
 
 # TODO: Predict and sample functions from sklearn's GP library, and plot results
+y_pred_mean, y_pred_std = model.predict(X_new, return_std=True)
+samples = model.sample_y(X_new, n_samples=3)
+print(y_pred_mean.shape, y_pred_std.shape, samples.shape)
+plot_GP_posterior(X1, y1, X_new, y_pred_mean, y_pred_std, samples)
 # -
 
 Image('./figures/gp_posterior_plot_sklearn.png')
@@ -352,7 +392,9 @@ Image('./figures/gp_posterior_plot_sklearn.png')
 #
 #     
 # **Answer**
-#     
+# We map all the values from the posterior $\mathbf{f_*}$ to A.6 in \[[1](#References)\], ie match it to this equation:  $N(\mu_x, A), and x|y \sim N(\mu_x + CB^{−1}(y − \mu_y ),   A − CB^{−1}C^T)$
+#
+# For example let $\mu_x = \mathbf{0}$ and $(\mathbf{y} - \mu_y) = \mathbf{f}$ and then let C = K(X) .... etc
 # </div>
 
 # **Matrix Inversion Instability** Matrix inversion is known to be numerically unstable. To address this issue, we will instead use Cholesky factorization (see appendix A.4 of \[[1](#References)\]) to try and achieve numerically stable computation of the new covariance matrix. 
@@ -371,8 +413,16 @@ Image('./figures/gp_posterior_plot_sklearn.png')
 #     
 # </div>
 
-def predict(kernel, X_star, X, y
-           ):
+# mean:
+# $$K(X_*,X)K(X,X)^{-1}\mathbf{f}
+# $$
+#
+# Covariance:
+# $$\Sigma_* = K(X_*, X_*) - K(X_*, X) K(X, X)^{-1} K(X, X_*)$$
+
+# +
+
+def predict(kernel, X_star, X, y):
     '''Compute the mean and covariance matrix of the posterior
     predictive distribution given X, X* and y.
     
@@ -395,6 +445,21 @@ def predict(kernel, X_star, X, y
         values given X, y and X_star.
     '''
     # TODO: Implement
+    K = kernel(X, X)
+    K_star = kernel(X, X_star)    
+    K_star_star = kernel(X_star, X_star)
+    
+    L = np.linalg.cholesky(K + 1e-6 * np.eye(K.shape[0]))
+    v_mean = np.linalg.solve(L, y)
+    alpha = np.linalg.solve(L.T, v_mean)
+    y_pred_mean = K_star.T @ alpha
+    V_cov = np.linalg.solve(L, K_star)
+    y_pred_cov = K_star_star - (V_cov.T @ V_cov)
+    
+    return y_pred_mean, y_pred_cov  
+
+
+# -
 
 # <div class="alert alert-block alert-info"> 
 #     
@@ -402,8 +467,29 @@ def predict(kernel, X_star, X, y
 #     
 # </div>
 
+# +
 # TODO: Reproduce GP posterior plot
+y_pred_mean, y_pred_cov = predict(kernel1, X_new, X1.reshape(-1,1), y1)
+y_pred_std = np.sqrt(np.diag(y_pred_cov))
 
+plt.figure(figsize=(8, 4))
+plt.plot(X1.flatten(), y1.flatten(), 'ro', label='Observed')    
+plt.plot(X_new, y_pred_mean, 'k-', label='Mean')
+plt.fill_between(
+    X_new.flatten(),
+    y_pred_mean - 1.96 * y_pred_std,
+    y_pred_mean + 1.96 * y_pred_std,
+    color='gray', alpha=0.2, label='95% CI'
+)
+for i in range(3):
+    sample = np.random.multivariate_normal(mean=y_pred_mean.flatten(), cov=y_pred_cov)
+    plt.plot(X_new.flatten(), sample, lw=1, linestyle='--', label=f'Sample {i+1}')
+plt.title("GP Posterior")
+plt.xlabel("x")
+plt.ylabel("f(x)")
+plt.legend()
+plt.show()
+# -
 
 Image('./figures/gp_posterior_plot_self.png')
 
