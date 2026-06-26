@@ -8,7 +8,7 @@
 #       format_version: '1.5'
 #       jupytext_version: 1.17.1
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: apm
 #     language: python
 #     name: python3
 # ---
@@ -39,9 +39,6 @@ from functools import reduce
 
 from utils import confidence_ellipse
 # -
-
-
-
 # # Gaussian & Dirichlet Processes
 
 # <div class="alert alert-block alert-info">
@@ -144,7 +141,28 @@ plt.show()
 # where $\bar{\mathbf{w}}=\frac{1}{\sigma^2_n}\left(\frac{1}{\sigma^2_n}XX^T+\Sigma_p^{-1}\right)^{-1}X\mathbf{y}$, and $\mathbf{w}$ is a vector of weights of a linear regression model.
 #     
 # **Answer**
-#     
+# The posterior is given as 
+# $$
+# p(\mathbf{w}|X,\mathbf{y}) = \frac{p(\mathbf{y}|X,\mathbf{w})p(\mathbf{w})}{p(\mathbf{y}|X)}
+# $$
+# and since the normalising constant is not dependent on the weights we can write this proportionally as the likelihood multiplied by the prior:
+# $$
+# p(\mathbf{w}|X,\mathbf{y}) \propto p(\mathbf{y}|X,\mathbf{w})p(\mathbf{w}) \\
+# \propto \frac{1}{(2\pi\sigma_n^2)^\frac{n}{2}}\exp \left({\frac{-1}{2\sigma_n^2}(\mathbf{y}-X^T\mathbf{w})^T (\mathbf{y}-X^T\mathbf{w})}\right) \exp \left(\frac{-1}{2}\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right) \\
+# \propto \exp \left({\frac{-1}{2\sigma_n^2}(\mathbf{y}-X^T\mathbf{w})^T (\mathbf{y}-X^T\mathbf{w})}-\frac{1}{2}\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right) \\
+# \propto \exp \left(\frac{-1}{2}\left(\frac{1}{\sigma_n^2}(\mathbf{y}-X^T\mathbf{w})^T (\mathbf{y}-X^T\mathbf{w})+\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right)\right) \\
+# \propto \exp \left(\frac{-1}{2}\left(\frac{1}{\sigma_n^2}(\mathbf{y}^T\mathbf{y} - \mathbf{y}^T X^T\mathbf{w} - \mathbf{w}^T X\mathbf{y} + \mathbf{w}^T X X^T\mathbf{w})+\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right)\right) \\
+# \propto \exp \left(\frac{-1}{2}\left(\frac{1}{\sigma_n^2}(\mathbf{y}^T\mathbf{y} - 2\mathbf{w}^T X\mathbf{y} + \mathbf{w}^T X X^T\mathbf{w})+\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right)\right) \text{ (group $\mathbf{w}$ and $\mathbf{w}^T$)}\\
+# \propto \exp \left(\frac{-1}{2}\left(\mathbf{w}^T \left(\frac{1}{\sigma_n^2}X X^T + \Sigma_p^{-1}\right) \mathbf{w} - \frac{2}{\sigma_n^2}\mathbf{w}^T X\mathbf{y} + \frac{1}{\sigma_n^2}\mathbf{y}^T\mathbf{y}\right)\right) \text{ ( we drop constant)}\\
+# \propto \exp \left(\frac{-1}{2}\left(\mathbf{w}^T \left(\frac{1}{\sigma_n^2}X X^T + \Sigma_p^{-1}\right) \mathbf{w} - \frac{2}{\sigma_n^2}\mathbf{w}^T X\mathbf{y} \right)\right) \\
+# $$
+# The next step requires letting $A = \frac{1}{\sigma_n^2}X X^T + \Sigma_p^{-1}$ and $\bar{\mathbf{w}} = \frac{1}{\sigma_n^2} A^{-1} X\mathbf{y}$:
+#
+# $$
+# \propto \exp \left(\frac{-1}{2}(\mathbf{w}^T A\mathbf{w}) - 2\mathbf{w}^T A \mathbf{\bar{w}} \right) \\
+# \propto \exp\left(-\frac{1}{2}(\mathbf{w}-\bar{\mathbf{w}})^T A (\mathbf{w}-\bar{\mathbf{w}})\right) \\
+# \propto \exp\left(-\frac{1}{2}(\mathbf{w}-\bar{\mathbf{w}})^T (\frac{1}{\sigma_n^2}X X^T + \Sigma_p^{-1}) (\mathbf{w}-\bar{\mathbf{w}})\right)
+# $$
 # </div>
 
 # <div class="alert alert-block alert-info">
@@ -378,17 +396,14 @@ def predict(kernel, X_star, X, y
     '''
     # TODO: Implement
 
-
 # <div class="alert alert-block alert-info"> 
 #     
 # Use your `predict` function above and your own sampling mechanism to reproduce the plot below for regression task 1 (using `plot_GP_posterior`). Compare to the results obtained using `sklearn.gaussian_process.GaussianProcessRegressor` - the plots should look similar. 
 #     
 # </div>
 
-# +
 # TODO: Reproduce GP posterior plot
 
-# -
 
 Image('./figures/gp_posterior_plot_self.png')
 
@@ -444,12 +459,11 @@ X_star = np.linspace(0.05,0.95).reshape(-1,1)
 
 # +
 # TODO: Fit using correct noise level
+# -
 
 
-# +
 # TODO: Fit using higher level of noise than is actually present
 
-# -
 
 # <div class="alert alert-block alert-info">
 #
@@ -516,15 +530,12 @@ plt.show()
 def marginal_likelihood(X, y, kernel, sigma_eps=0):
     # TODO: Implement
 
-
-# +
 # Perform a grid search over l in [0.05, 0.16] and sigma in [0.5, 2]
 # to find suitable values for sigma^2 and l^2. Potentially useful
 # numpy functions: meshgrid, argmax, unravel_index . Potentially
 # useful matplotlib function: matplotlib.pyplot.pcolormesh ,
 # matplotlib.pyplot.colorbar .
 
-# -
 
 Image('./figures/grid_search.png')
 
@@ -855,10 +866,8 @@ w = interact(plot_inf_gmm, N=(0,1000,10))
 # Take samples of size 10000 for the following values of $\alpha$, and plot the results as above, using the same NIW parameters: $\alpha \in \{ 0.1 , 0.8, 1.4, 2.0 \}$.  Note how the number of clusters changes with $\alpha$.
 # </div>
 
-# +
 # TODO
 
-# -
 
 # ## 2.2. Markov Chain Inference Methods for DP Mixture Models
 
@@ -1237,12 +1246,11 @@ c2_samples, phi2_samples, log_posterior2 = gibbs2.run(Y, num_iter=200)
 
 # +
 # TODO: Check evolution of the number of clusters used
+# -
 
 
-# +
 # TODO: Plot cluster assignments and confidence ellipses
 
-# -
 
 # ### Algorithm 3 - Collapsed Gibbs Sampling
 
@@ -1333,12 +1341,11 @@ c3_samples, log_posterior3 = gibbs3.run(Y, num_iter=200)
 
 # +
 # TODO: Check evolution of the number of clusters used
+# -
 
 
-# +
 # TODO: Plot cluster assignments and confidence ellipses
 
-# -
 
 # <div class="alert alert-block alert-info">
 #
@@ -1361,5 +1368,3 @@ c3_samples, log_posterior3 = gibbs3.run(Y, num_iter=200)
 # \[1\] Rasmussen, C.E. and Williams, C.K.I. (2006). _Gaussian Processes for Machine Learning_.  MIT Press: Cambridge, USA. http://www.gaussianprocess.org/gpml/chapters/RW.pdf
 #
 # \[2\] Neal, R.M. (2000). Markov Chain Sampling Methods for Dirichlet Process Mixture Models. _Journal of Computational and Graphical Statistics_, 9(2): 249-265. http://www.stat.columbia.edu/npbayes/papers/neal_sampling.pdf
-
-
