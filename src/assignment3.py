@@ -812,7 +812,30 @@ Image('./figures/2d_regression_fit.png')
 @interact(x2_col=(0,x2.shape[0]-1))
 def slice_x1(x2_col):   
     # TODO: Implement
+    # SOLUTION_START
+    x_val = x2[:, x2_col]
+    x1_fixed = x1[0, x2_col]
+    mu_slice = y_pred_mean.reshape(x1.shape)[:, x2_col]
+    std_slice = y_pred_std.reshape(x1.shape)[:, x2_col]
+    true_slice = y_true[:, x2_col]
+    
+    plt.figure(figsize=(6, 5))
+    plt.ylim(-1, 4)
+    plt.plot(x_val, mu_slice, color='gray', label='GP mean')
+    plt.plot(x_val, true_slice, color='red', label='True')
+    plt.fill_between(x_val, 
+                     mu_slice - 1.96 * std_slice, 
+                     mu_slice + 1.96 * std_slice, 
+                     color='lightgray', alpha=0.3, label='95% CI')
+    
+    plt.title(f'$x_1 = {x1_fixed:.1f}$')
+    plt.xlabel('$x_2$')
+    plt.ylabel('$y$')
+    plt.legend(loc='upper right')
+    plt.show()
 
+
+slice_x1(24)
 
 Image('./figures/2d_regression_slice_x1.png')
 
@@ -820,10 +843,31 @@ Image('./figures/2d_regression_slice_x1.png')
 @interact(x1_row=(0,x1.shape[0]-1))
 def slice_x2(x1_row):   
     # TODO: Implement
+    x_val = x1[x1_row, :]
+    x2_fixed = x2[x1_row, 0]
+    mu_slice = y_pred_mean.reshape(x1.shape)[x1_row, :]
+    std_slice = y_pred_std.reshape(x1.shape)[x1_row, :]
+    true_slice = y_true[x1_row, :]
 
+    plt.figure(figsize=(7, 5))
+    plt.ylim(-1.04, 4)
+    plt.plot(x_val, mu_slice, color='gray', label='GP mean')
+    plt.plot(x_val, true_slice, color='red', label='True')
+    plt.fill_between(x_val, 
+                     mu_slice - 1.96 * std_slice, 
+                     mu_slice + 1.96 * std_slice, 
+                     color='lightgray', alpha=0.3, label='95% CI')
+    
+    plt.title(f'$x_2 = {x2_fixed:.1f}$')
+    plt.xlabel('$x_1$')
+    plt.ylabel('$y$')
+    plt.legend(loc='upper right')
+    plt.show()
+
+
+slice_x2(38)
 
 Image('./figures/2d_regression_slice_x2.png')
-
 
 # ## 1.6 Designing a Covariance Function
 
@@ -832,6 +876,58 @@ Image('./figures/2d_regression_slice_x2.png')
 # Look into alternative data sets where the kernel functions above are not appropriate for GP regression. Discuss a more suitable kernel function, illustrate how it works and what aspects of the data it improves modelling on. Constrast the results when using the above kernel with this alternative kernel. A helpful resource on choosing or designing new kernel functions can be found [here](https://www.cs.toronto.edu/~duvenaud/cookbook/).
 #     
 # </div>
+
+# +
+from sklearn.gaussian_process.kernels import RBF, ExpSineSquared, ConstantKernel as C
+
+# Generate synthetic periodic data , a noisy sine wave
+np.random.seed(42)
+X_train = np.sort(np.random.uniform(0, 10, 40)).reshape(-1, 1)
+X_train = np.delete(X_train, np.where((X_train > 4) & (X_train < 7))[0]).reshape(-1, 1)
+y_train = np.sin(X_train).ravel() + np.random.normal(0, 0.1, X_train.shape[0])
+X_test = np.linspace(0, 15, 200).reshape(-1, 1)
+y_true = np.sin(X_test).ravel()
+
+# RBF Kernel
+kernel_rbf = C(1.0, (1e-3, 1e3)) * RBF(1.0, (1e-2, 1e2))
+
+# Periodic Kernel 
+kernel_periodic = C(1.0, (1e-3, 1e3)) * ExpSineSquared(length_scale=1.0, periodicity=2*np.pi,
+                                                       length_scale_bounds=(1e-2, 1e2),
+                                                       periodicity_bounds=(1e-1, 10))
+
+gp_rbf = gp.GaussianProcessRegressor(kernel=kernel_rbf, alpha=0.1**2, n_restarts_optimizer=10)
+gp_rbf.fit(X_train, y_train)
+
+gp_periodic = gp.GaussianProcessRegressor(kernel=kernel_periodic, alpha=0.1**2, n_restarts_optimizer=10)
+gp_periodic.fit(X_train, y_train)
+
+y_pred_rbf, std_rbf = gp_rbf.predict(X_test, return_std=True)
+y_pred_per, std_per = gp_periodic.predict(X_test, return_std=True)
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True, sharey=True)
+
+ax1.plot(X_test, y_true, label='True Function', linestyle='--')
+ax1.scatter(X_train, y_train, label='Training Data', zorder=3)
+ax1.plot(X_test, y_pred_rbf, label='RBF Mean')
+ax1.fill_between(X_test.ravel(), y_pred_rbf - 1.96 * std_rbf, y_pred_rbf + 1.96 * std_rbf, alpha=0.2)
+ax1.set_title(f'RBF Kernel (Fails to extrapolate and connect the gap)')
+ax1.legend()
+
+ax2.plot(X_test, y_true, label='True Function', linestyle='--')
+ax2.scatter(X_train, y_train, label='Training Data', zorder=3)
+ax2.plot(X_test, y_pred_per, label='Periodic Mean')
+ax2.fill_between(X_test.ravel(), y_pred_per - 1.96 * std_per, y_pred_per + 1.96 * std_per, alpha=0.2)
+ax2.set_title(f'Periodic Kernel (Successfully captures circular geometry)')
+ax2.set_xlabel('X (e.g., Time or Angle)')
+ax2.legend()
+
+plt.tight_layout()
+plt.show()
+
+
+# -
+
+# Discuss: TODO
 
 # # 2. Dirichlet Processes for Infinite GMMs
 # <!-- 
