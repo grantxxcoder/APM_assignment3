@@ -1590,10 +1590,31 @@ class GibbsSampler2(GibbsSampler):
     
     def sample_c(self, c_not_n, y_n, phi):
         # TODO: Implement
-    
+        N = len(c_not_n) + 1
+        m_not_nk = np.array([np.sum(c_not_n == c_k) for c_k in phi.keys()])
+        p_yn_given_phik = np.array([multivariate_normal(mean=phi[c_k][0], cov=phi[c_k][1]).pdf(y_n) for c_k in phi.keys()])
+        denominator = N - 1 + self.alpha
+        p_c_given_y = np.zeros(len(phi) + 1)
+        for i, c_k in enumerate(phi.keys()):
+            p_c_given_y[i] = (m_not_nk[i] / denominator) * p_yn_given_phik[i]
+        marginal_likelihood = self.log_marginal_likelihood(y_n)
+        p_c_given_y[-1] = (self.alpha / denominator) * np.exp(marginal_likelihood)
+        p_c_given_y /= np.sum(p_c_given_y)
+        choice = np.random.multinomial(1, p_c_given_y).argmax()
+        if choice < len(phi):
+            c_n = list(phi.keys())[choice]
+        else:
+            c_n = max(phi.keys()) + 1
+            phi[c_n] = list(self.niw.sample())
+        return c_n
     
     def sample_phi(self, Y, c, c_k):
         # TODO: Implement
+        Y_k = Y[c == c_k]
+        mu_n, lambda_n, nu_n, S_n = self.niw.posterior_params(Y_k)
+        niw_posterior = NIW(mu_n, lambda_n, nu_n, S_n)
+        mean, cov = niw_posterior.sample()
+        return mean, cov
         
     
     def sample_params(self, Y, c, phi):        
@@ -1643,17 +1664,35 @@ class GibbsSampler2(GibbsSampler):
 gibbs2 = GibbsSampler2(alpha=0.1, mu0=np.zeros(2), lambda0=0.1, nu0=4, S0=np.eye(2))
 c2_samples, phi2_samples, log_posterior2 = gibbs2.run(Y, num_iter=200)
 
-# +
 # TODO: Plot log-posterior
+plt.plot(log_posterior2)
+plt.xlabel('Iteration')
+plt.ylabel(r'$\log \: p(c, \phi|Y)$')
+plt.show()
+
+
+# TODO: Check evolution of the number of clusters used
+num_clusters = [len(phi) for phi in phi2_samples]
+plt.plot(num_clusters)
+plt.ylabel('Number of components')
+plt.xlabel('Iteration')
+plt.show()
 
 
 # +
-# TODO: Check evolution of the number of clusters used
-# -
-
-
 # TODO: Plot cluster assignments and confidence ellipses
+c = c2_samples[-1]
+phi = phi2_samples[-1]
+K = len(phi)
 
+for i, k in enumerate(phi.keys()):
+    d = Y[c==k].reshape(-1,2)
+    plt.scatter(d[:,0], d[:,1], alpha=0.6)
+    plt.scatter(phi[k][0][0], phi[k][0][1], marker='x', s=100,linewidths=2.0)
+    confidence_ellipse(phi[k][1], phi[k][0], plt.gca(), n_std=2.0, edgecolor='tab:blue')
+    plt.show()
+
+# -
 
 # ### Algorithm 3 - Collapsed Gibbs Sampling
 
@@ -1709,14 +1748,56 @@ class GibbsSampler3(GibbsSampler):
     
     def sample_c(self, c_not_n, y_n, y_not_n):
         # TODO: Implement
+        N = len(c_not_n) + 1
+        unique_clusters = np.unique(c_not_n)
+        m_not_nk = np.array([np.sum(c_not_n == c_k) for c_k in unique_clusters])
+        denominator = N - 1 + self.alpha
+
+        p_c_given_y = np.zeros(len(unique_clusters) + 1)
+        for i, c_k in enumerate(unique_clusters):
+            Y_k = y_not_n[c_not_n == c_k]
+            mu_n, lambda_n, nu_n, S_n = self.niw.posterior_params(Y_k)
+            
+            # Posterior predictive is a multivariate t, not a sampled Gaussian
+            df = nu_n - self.D + 1
+            scale = S_n * (lambda_n + 1) / (lambda_n * df)
+            p_k_yn = multivariate_t(loc=mu_n, shape=scale, df=df).pdf(y_n)  # ← t-distribution
+            
+            p_c_given_y[i] = (m_not_nk[i] / denominator) * p_k_yn
+
+        p_c_given_y[-1] = (self.alpha / denominator) * np.exp(self.log_marginal_likelihood(y_n))
+        p_c_given_y /= np.sum(p_c_given_y)
         
+        choice = np.random.multinomial(1, p_c_given_y).argmax()
+        if choice < len(unique_clusters):
+            return unique_clusters[choice]
+        else:
+            return max(c_not_n) + 1
     
     def sample_params(self, Y, c):  
         # TODO: Implement
-        
-    
+        N = Y.shape[0]
+        for n in range(N):
+            y_n = Y[n]
+            c_not_n = np.delete(c, n)
+            y_not_n = np.delete(Y, n, axis=0)
+
+            # Sample new c_n
+            c_n = self.sample_c(c_not_n, y_n, y_not_n)
+            c[n] = c_n
+
+        return c
+
     def expected_phi(self, Y, c):
         # TODO: Implement
+        phi = {}
+        for c_k in np.unique(c):
+            Y_k = Y[c == c_k]
+            mu_n, lambda_n, nu_n, S_n = self.niw.posterior_params(Y_k)
+            phi[c_k] = [mu_n, S_n / (nu_n - self.D - 1)]
+
+        return phi
+
     
     
     def run(self, Y, num_iter=100):
@@ -1738,17 +1819,42 @@ class GibbsSampler3(GibbsSampler):
 gibbs3 = GibbsSampler3(alpha=0.1, mu0=np.zeros(2), lambda0=0.1, nu0=4, S0=np.eye(2))
 c3_samples, log_posterior3 = gibbs3.run(Y, num_iter=200)
 
-# +
 # TODO: Plot log-posterior
+plt.plot(log_posterior3)
+plt.xlabel('Iteration')
+plt.ylabel(r'$\log \: p(c, \phi|Y)$')
+plt.show()
+
+
+
+# TODO: Check evolution of the number of clusters used
+n_clusters = [len(np.unique(c)) for c in c3_samples]
+plt.plot(n_clusters)
+plt.ylabel('Number of components')
+plt.xlabel('Iteration')
+plt.show()
 
 
 # +
-# TODO: Check evolution of the number of clusters used
-# -
-
-
 # TODO: Plot cluster assignments and confidence ellipses
+c_final = c3_samples[-1]
+phi_final = gibbs3.expected_phi(Y, c_final)
 
+plt.figure(figsize=(6, 5))
+for c_k in np.unique(c_final):
+    mask = c_final == c_k
+    plt.scatter(Y[mask, 0], Y[mask, 1], label=f'Cluster {c_k}', s=20)
+    mu = phi_final[c_k][0]
+    plt.scatter(*mu, marker='x', s=100, color='black')
+    confidence_ellipse(phi_final[c_k][1], mu, plt.gca(), n_std=2.0, edgecolor='black', alpha=0.5)
+
+plt.xlabel('$y_1$')
+plt.ylabel('$y_2$')
+plt.title(f'Cluster assignments (iteration 200, K={len(np.unique(c_final))})')
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7)
+plt.tight_layout()
+plt.show()
+# -
 
 # <div class="alert alert-block alert-info">
 #
