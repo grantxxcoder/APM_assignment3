@@ -956,7 +956,25 @@ plt.show()
 #
 # **Question 2.1** Explain how the exchangeability assumption is related to the i.i.d. assumption, and how de Finetti's theorem allows us to move between them.
 #
-# **Answer**
+# **Answer** TODO clean up
+# The exchangeable property states that a sequence of random variables is exchangeable if their joint distributions are invariant to ordering. Ie:
+# $$p(Y_1, \ldots, Y_N) = p(Y_{\pi(1)}, \ldots, Y_{\pi(N)})$$
+# where $\pi$ is a permutation of the indices $\{1, \dots, N\}$. 
+#
+# The iid property of random variables has the following property:
+# $$p(Y_1, \dots, Y_N) =  \prod_{n=1}^N p(Y_n)$$
+#
+# Therefore, we can see that the iid property is a stronger assumption than exchangeability. The iid assumption implies exchangeability as we can take any permutation of the random variables due to their independence and thus reform the joint distribution. However, exchangeability does not imply iid as the invariance to order does not have any assumption over independence between random variables.
+#
+# The de Finnetti theorem states that an infinitely exchangeable sequence of random variables can have its joint distribution be represented as a mixture of conditionally independent and identically distributed distributions. Therefore over any distribution G for any N variables we have:
+# $$p(Y_1, \dots, Y_N) = \int \prod_{n=1}^N p(Y_n|G) \, dP(G)$$
+# This makes sense as if we find a distribution G to condition on with the conditional independence asssumption we can do the following: 
+# $$\begin{aligned}
+# p(Y_{\pi(1)}, \dots, Y_{\pi(N)}) &= \int p(Y_{\pi(1)}, \dots, Y_{\pi(N)}|G) \, dP(G) \quad \text{(Law of Total Probability)} \\
+# &= \int \prod_{n=1}^N p(Y_{\pi(n)}|G) \, dP(G) \quad \text{(by conditional independence given  G)} \\
+# &= \int \prod_{n=1}^N p(Y_n|G) \, dP(G) \quad \text{(since the order of scalar multiplication is commutative)} \\
+# &= p(Y_1, \dots, Y_N)
+# \end{aligned}$$
 #
 # </div>
 
@@ -1014,7 +1032,25 @@ plt.show()
 # **Question 2.2** Give the formulae for the posterior parameters of the NIW in terms of the parameters of the prior, the data points $\mathbf{y}_i$, and the sample mean $\bar{\mathbf{y}}$. Also give a description of the interpretation of each NIW parameter. 
 #
 # **Answer**
+# Given $N$ independent observations $\mathbf{y}_i$ of dimension $D$, with sample mean $\bar{\mathbf{y}} = \frac{1}{N} \sum_{i=1}^N \mathbf{y}_i$, the posterior parameters for $\text{NIW}(\mu_N, \lambda_N, \nu_N, S_N)$ are computed as follows:
+# $$\begin{aligned}
+# \lambda_N &= \lambda_0 + N \\
+# \mu_N &= \frac{\lambda_0 \mu_0 + N \bar{\mathbf{y}}}{\lambda_0 + N} \\
+# \nu_N &= \nu_0 + N \\
+# S_N &= S_0 + \sum_{i=1}^N (\mathbf{y}_i - \bar{\mathbf{y}})(\mathbf{y}_i - \bar{\mathbf{y}})^T + \frac{\lambda_0 N}{\lambda_0 + N} (\bar{\mathbf{y}} - \mu_0)(\bar{\mathbf{y}} - \mu_0)^T
+# \end{aligned}$$
 #
+# Interpretation of NIW Parameters
+#
+#
+# $\mu_0$ (Prior Mean): This is the expected location of the distribution's mean vector. As seen in the update equations, the posterior mean $\mu_N$ is a convex combination of this prior mean $\mu_0$ and the empirical sample mean $\bar{\mathbf{y}}$.
+#
+# $\lambda_0$ (Mean Concentration / Pseudo-observations): This controls the strength of the prior belief in $\mu_0$. It is mathematically equivalent to the number of prior "pseudo-observations" that support the prior mean. As the number of actual data points $N$ grows relative to $\lambda_0$, the sample mean overtakes the prior in dominating the posterior mean $\mu_N$.
+#
+#
+# $\nu_0$ (Degrees of Freedom): This controls the strength of the prior belief in the covariance structure. It represents the number of "pseudo-observations" contributing to the prior covariance. For the Inverse-Wishart distribution to be proper, $\nu_0$ must strictly exceed $D-1$.
+#
+# $S_0$ (Prior Scatter Matrix): This unnormalized covariance matrix encodes prior assumptions about the shape and scale of the data's variance. The expected value of the prior covariance is governed by this matrix, specifically $\mathbb{E}[\Sigma] = \frac{S_0}{\nu_0 - D - 1}$ (provided $\nu_0 > D + 1$). The posterior scatter matrix $S_N$ accumulates three components: the prior scatter $S_0$, the empirical scatter of the observed data, and the dispersion between the empirical sample mean and the prior mean.
 #     
 # </div>
 
@@ -1048,6 +1084,14 @@ class NIW:
         given the observed N x D data matrix Y.
         '''
         # TODO: Implement
+        N = Y.shape[0]
+        y_bar = np.mean(Y, axis=0)
+
+        lambda_n = self.lambda0 + N
+        mu_n = (self.lambda0 * self.mu0 + N * y_bar) / lambda_n
+        nu_n = self.nu0 + N
+        S_n = self.S0 + (Y - y_bar).T @ (Y - y_bar) + (self.lambda0 * N) / lambda_n * np.outer(y_bar - self.mu0, y_bar - self.mu0)
+
         return mu_n, lambda_n, nu_n, S_n
 
 
@@ -1135,6 +1179,36 @@ def sample_inf_gmm(alpha, mu0, lambda0, nu0, S0, N):
         N x D matrix of sampled data points.
     '''
     # TODO: Implement
+    # SOLUTION_START
+    D = mu0.shape[0]
+    c = np.zeros(N, dtype=int)
+    Y = np.zeros((N, D))
+    niw = NIW(mu0, lambda0, nu0, S0)
+
+    cluster_params = [niw.sample()] 
+    mu_k, Sigma_k = cluster_params[0]
+    Y[0] = np.random.multivariate_normal(mu_k, Sigma_k)
+    k = 1
+
+    for n in range(1, N):
+        probs_arr_active_clusters = np.zeros(k + 1)
+        for j in range(k):
+            m_nk = np.sum(c[:n] == j)
+            probs_arr_active_clusters[j] = m_nk / (n + alpha)
+
+        probs_arr_active_clusters[k] = alpha / (n + alpha)
+ 
+        c[n] = np.random.multinomial(1, probs_arr_active_clusters).argmax()
+    
+        if c[n] == k:
+            mu_k, Sigma_k = niw.sample()
+            cluster_params.append((mu_k, Sigma_k))
+            k += 1
+
+        mu_k, Sigma_k = cluster_params[c[n]]
+        Y[n] = np.random.multivariate_normal(mu_k, Sigma_k)
+
+    return k, c, Y
 
 
 # +
@@ -1153,6 +1227,7 @@ def plot_inf_gmm(N=10):
     plt.show()
 
 w = interact(plot_inf_gmm, N=(0,1000,10))
+plot_inf_gmm(1000)
 # -
 
 # <div class="alert alert-block alert-info">
@@ -1170,8 +1245,24 @@ w = interact(plot_inf_gmm, N=(0,1000,10))
 # Take samples of size 10000 for the following values of $\alpha$, and plot the results as above, using the same NIW parameters: $\alpha \in \{ 0.1 , 0.8, 1.4, 2.0 \}$.  Note how the number of clusters changes with $\alpha$.
 # </div>
 
+# +
 # TODO
+sample_size = 1000
+alpha_vals = [0.1, 0.8, 1.4, 2.0]
 
+for alpha in alpha_vals:
+    k, c, y = sample_inf_gmm(alpha, np.zeros(2), 0.1, 4, np.eye(2), sample_size)
+    plt.figure(figsize=(6, 6))
+    for i in range(len(set(c))):
+        plt.scatter(y[c==i,0], y[c==i,1], alpha=0.6)
+    plt.xlim((np.min(y[:,0])-.5,np.max(y[:,0])+.5))
+    plt.ylim((np.min(y[:,1])-.5,np.max(y[:,1])+.5))
+    plt.title(f'alpha = {alpha}, k = {k}')
+    plt.xlabel('Dimension 1')
+    plt.ylabel('Dimension 2')
+    plt.legend(np.arange(k))
+    plt.show()
+# -
 
 # ## 2.2. Markov Chain Inference Methods for DP Mixture Models
 
@@ -1230,14 +1321,20 @@ class GibbsSampler:
         self.niw = NIW(mu0, lambda0, nu0, S0)      
         self.D = mu0.shape[0]
     
-    
+
     def log_marginal_likelihood(self, Y):
         if Y.ndim == 1:
             Y = Y.reshape(1,-1)
         N, D = Y.shape
         mu_n, lambda_n, nu_n, S_n = self.niw.posterior_params(Y)
 
-        # log_marginal = # TODO 
+        # SOLUTION_START
+        term1 = np.log(np.pi) * (-N * D / 2)
+        term2 = gamma_d(nu_n / 2, D) - gamma_d(self.niw.nu0 / 2, D)
+        term3 = (0.5 * self.niw.nu0 * np.linalg.slogdet(self.niw.S0)[1] - 0.5 * nu_n  * np.linalg.slogdet(S_n)[1])
+        term4 = D * 0.5 * (np.log(self.niw.lambda0) - np.log(lambda_n))
+        log_marginal = term1 + term2 + term3 + term4 # TODO
+        # SOLUTION_END
         return log_marginal
     
     
@@ -1360,9 +1457,11 @@ class GibbsSampler1(GibbsSampler):
         p = np.zeros(len(js)+1)
         
         for i, j in enumerate(js):
-            # p[i] = # TODO: Compute (unnormalized) prob of choosing existing mixture j
-         
-        # p[-1] = # TODO: Compute (unnormalized) prob of choosing new mixture
+            # SOLUTION_START
+            p[i] = np.exp(np.log(self.counts[j]) + multivariate_normal.logpdf(Y[n], mean=theta[j][0], cov=theta[j][1])) # TODO: Compute (unnormalized) prob of choosing existing mixture j
+        
+        marginal_likelihood = self.log_marginal_likelihood(Y[n])
+        p[-1] = np.exp(np.log(self.alpha) + marginal_likelihood) # TODO: Compute (unnormalized) prob of choosing new mixture
         
         choice = np.random.choice(len(js)+1, p=p/np.sum(p))
         if choice < len(js):
