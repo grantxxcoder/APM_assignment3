@@ -418,11 +418,15 @@ Image('./figures/gp_posterior_plot_sklearn.png')
 # $$
 #
 # Covariance:
-# $$\Sigma_* = K(X_*, X_*) - K(X_*, X) K(X, X)^{-1} K(X, X_*)$$
+# $$\Sigma_* = K(X_*, X_*) - K(X_*, X) K(X, X)^{-1} K(X, X_*) \\
+#
+# p(\mathbf{f}_*| X_*, X, \mathbf{y}) = \mathcal{N}(K(X_*,X)[K(X,X)+\sigma_\epsilon^2I]^{-1}\mathbf{y}, K(X_*,X_*)-K(X_*,X)[K(X,X)+\sigma_\epsilon^2I]^{-1}K(X,X_*)).
+#
+# $$
 
 # +
 
-def predict(kernel, X_star, X, y):
+def predict(kernel, X_star, X, y, sigma_eps=0):
     '''Compute the mean and covariance matrix of the posterior
     predictive distribution given X, X* and y.
     
@@ -449,7 +453,7 @@ def predict(kernel, X_star, X, y):
     K_star = kernel(X, X_star)    
     K_star_star = kernel(X_star, X_star)
     
-    L = np.linalg.cholesky(K + 1e-6 * np.eye(K.shape[0]))
+    L = np.linalg.cholesky(K + (sigma_eps ** 2) * np.eye(K.shape[0]))
     v_mean = np.linalg.solve(L, y)
     alpha = np.linalg.solve(L.T, v_mean)
     y_pred_mean = K_star.T @ alpha
@@ -529,6 +533,8 @@ y1_noise = -np.cos(np.pi*X1_noise) + np.sin(4*np.pi*X1_noise) + np.random.normal
 
 plt.scatter(X1_noise, y1_noise)
 plt.show()
+
+
 # -
 
 # <div class="alert alert-block alert-info">
@@ -537,19 +543,47 @@ plt.show()
 #     
 # </div>
 
+# +
+# SOLUTION_START ADDITIONAL CODE
+def plot(X1, y1, X_new, y_pred_mean, y_pred_std, y_pred_cov):
+    plt.figure(figsize=(8, 4))
+    plt.plot(X1.flatten(), y1.flatten(), 'ro', label='Observed')    
+    plt.plot(X_new, y_pred_mean, 'k-', label='Mean')
+    plt.fill_between(
+        X_new.flatten(),
+        y_pred_mean - 1.96 * y_pred_std,
+        y_pred_mean + 1.96 * y_pred_std,
+        color='gray', alpha=0.2, label='95% CI'
+    )
+    for i in range(3):
+        sample = np.random.multivariate_normal(mean=y_pred_mean.flatten(), cov=y_pred_cov)
+        plt.plot(X_new.flatten(), sample, lw=1, linestyle='--', label=f'Sample {i+1}')
+    plt.title("GP Posterior")
+    plt.xlabel("x")
+    plt.ylabel("f(x)")
+    plt.legend()
+    plt.show()
+    
+# SOLUTION_END ADDITIONAL CODE
+
+
+# -
+
 X_star = np.linspace(0.05,0.95).reshape(-1,1)
 
-# +
 # TODO: Fit using noise-free approach
+y_pred_mean, y_pred_cov = predict(kernel, X_star, X1.reshape(-1,1), y1, sigma_eps=0)
+plot(X1.reshape(-1,1), y1, X_star, y_pred_mean, np.sqrt(np.diag(y_pred_cov)), y_pred_cov)
 
 
-# +
 # TODO: Fit using correct noise level
-# -
+y_pred_mean_noise, y_pred_cov_noise = predict(kernel, X_star, X1_noise.reshape(-1,1), y1_noise, sigma_eps=0.1)
+plot(X1_noise.reshape(-1,1), y1_noise, X_star, y_pred_mean_noise, np.sqrt(np.diag(y_pred_cov_noise)), y_pred_cov_noise)
 
 
 # TODO: Fit using higher level of noise than is actually present
-
+y_pred_mean_noise_high, y_pred_cov_noise_high = predict(kernel, X_star, X1_noise.reshape(-1,1), y1_noise, sigma_eps=0.5)
+plot(X1_noise, y1_noise, X_star, y_pred_mean_noise_high, np.sqrt(np.diag(y_pred_cov_noise_high)), y_pred_cov_noise_high)
 
 # <div class="alert alert-block alert-info">
 #
@@ -613,21 +647,60 @@ plt.show()
 #     
 # </div>
 
+# +
+# SOLUTION_START
 def marginal_likelihood(X, y, kernel, sigma_eps=0):
     # TODO: Implement
+    K = kernel(X, X)
+    L = np.linalg.cholesky(K + (sigma_eps ** 2) * np.eye(K.shape[0]))
+    term1 = -0.5 * y.T @ np.linalg.solve(L.T, np.linalg.solve(L, y))
+    term2 = -np.sum(np.log(np.diagonal(L)))
+    term3 = -0.5 * X.shape[0] * np.log(2 * np.pi)
+    log_marginal_likelihood = term1 + term2 + term3
+    return log_marginal_likelihood
 
+# SOLUTION_END
+
+
+# +
 # Perform a grid search over l in [0.05, 0.16] and sigma in [0.5, 2]
 # to find suitable values for sigma^2 and l^2. Potentially useful
 # numpy functions: meshgrid, argmax, unravel_index . Potentially
 # useful matplotlib function: matplotlib.pyplot.pcolormesh ,
 # matplotlib.pyplot.colorbar .
+l_grid = np.linspace(0.05, 0.16, 100)
+s_grid = np.linspace(0.5, 2, 100)
+L_grid, S_grid = np.meshgrid(l_grid, s_grid)
+results = np.zeros(S_grid.shape)
 
+for i in trange(S_grid.shape[0]):
+    for j in range(S_grid.shape[1]):
+        l = L_grid[i,j]
+        s = S_grid[i,j]
+        k = gp.kernels.ConstantKernel(s**2, constant_value_bounds='fixed')*\
+            gp.kernels.RBF(l, length_scale_bounds='fixed')
+        results[i,j] = marginal_likelihood(X1.reshape(-1,1), y1, k, sigma_eps=0)
+
+plt.figure(figsize=(8, 6))
+plt.pcolormesh(S_grid, L_grid, results, shading='auto')
+plt.colorbar()
+plt.ylabel('l')
+plt.xlabel(f'$\sigma$') 
+
+max_idx = np.unravel_index(np.argmax(results), results.shape)
+optimal_l = L_grid[max_idx]
+optimal_s = S_grid[max_idx]
+plt.scatter(optimal_s, optimal_l, color='red', label='Max log p(y)', marker='x')
+
+plt.legend()
+plt.show()
+# -
 
 Image('./figures/grid_search.png')
 
 # Fit using tuned hyperparameters
-# sigma = # TODO: provide tuned hyperparameter value
-# length_scale = # TODO: provide tuned hyperparameter value
+sigma = optimal_s# TODO: provide tuned hyperparameter value
+length_scale = optimal_l# TODO: provide tuned hyperparameter value
 fig, ax = plt.subplots()
 x = np.linspace(-0.2,1.2).reshape(-1,1)
 kernel = gp.kernels.ConstantKernel(sigma**2, constant_value_bounds='fixed')*\
@@ -662,6 +735,34 @@ plt.show()
 
 # +
 # TODO: Tune hyperparameters over l in [2,4] and sigma in [1,2]
+l_grid = np.linspace(2, 4, 100)
+s_grid = np.linspace(1, 2, 100)
+L_grid, S_grid = np.meshgrid(l_grid, s_grid)
+results = np.zeros(S_grid.shape)
+
+print(X2.shape, y2.shape)
+for i in trange(S_grid.shape[0]):
+    for j in range(S_grid.shape[1]):
+        l = L_grid[i,j]
+        s = S_grid[i,j]
+        k = gp.kernels.ConstantKernel(s**2, constant_value_bounds='fixed')*\
+            gp.kernels.RBF(l, length_scale_bounds='fixed')
+        results[i,j] = marginal_likelihood(X2, y2, k, sigma_eps=0.1) # we know how much noise is present in the data, so we can use this value for sigma_eps
+
+plt.figure(figsize=(8, 6))
+plt.pcolormesh(S_grid, L_grid, results, shading='auto')
+plt.colorbar()
+plt.ylabel('l')
+plt.xlabel(f'$\sigma$') 
+
+max_idx = np.unravel_index(np.argmax(results), results.shape)
+optimal_l = L_grid[max_idx]
+optimal_s = S_grid[max_idx]
+plt.scatter(optimal_s, optimal_l, color='red', label='Max log p(y)', marker='x')
+
+plt.legend()
+plt.show()
+print(f'Optimal l: {optimal_l}, Optimal sigma: {optimal_s}')
 
 
 # +
@@ -674,6 +775,27 @@ y_true = (y_true - np.mean(y_true))/np.std(y_true)
 # TODO: Apply GP model to 2D data set, and generate a plot like the one below.
 # (The z label was troublesome for me to render due to matplotlib issues, don't
 # worry if yours doesn't show up.)
+model = gp.GaussianProcessRegressor(
+        kernel=gp.kernels.ConstantKernel(optimal_s**2, constant_value_bounds='fixed') *
+               gp.kernels.RBF(optimal_l, length_scale_bounds='fixed'),
+        alpha=0.1**2,      
+        normalize_y=False  
+)
+model.fit(X2, y2)
+y_pred_mean, y_pred_std = model.predict(X_star, return_std=True)
+
+
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection='3d')
+Z_pred = y_pred_mean.reshape(x1.shape)
+surf = ax.plot_surface(x1, x2, Z_pred, cmap='coolwarm', alpha=0.7, edgecolor='none')
+ax.scatter(X2[:, 0], X2[:, 1], y2.flatten(), c='tab:blue', marker='o', s=30, label='Observed Points')
+ax.set_xlabel(r'$x_1$')
+ax.set_ylabel(r'$x_2$')
+ax.set_zlabel(r'$y$')
+ax.view_init(elev=30, azim=-60)
+plt.show()
+
 # -
 
 Image('./figures/2d_regression_fit.png')
