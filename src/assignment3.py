@@ -410,19 +410,42 @@ Image('./figures/gp_posterior_plot_sklearn.png')
 # **Exercise 1.3.2** Explain how the computations of Algorithm 2.1 \[[1](#References)\] yield the values in (2.25), (2.26) and (2.30).
 #     
 # **Answer**
-#     
+# We look at the first part of the algorithm for the cholesky decomposition in which we obtain $L = cholesky(K+\sigma_{n}^2I)$. We do the decomposition to prevent needing to do the inverse calculation for $K+\sigma_{n}^2I$. However we know that because $K+\sigma_{n}^2I$ is symmetric and positive definite we have $K + \sigma_n^2 I = L L^T$. The backslash operator is used ot refer to solving a system of linear equations ie $A \backslash b$ denotes solving the linear system $Ax = b$ for $x$. Therefore to calculate $\mathbf{\alpha}=L^T\backslash(L\backslash\mathbf{y})$, we can do:
+# $$
+# \mathbf{\alpha}=L^T\backslash(L\backslash\mathbf{y}) \\
+# = L^T\backslash(L^{-1}\mathbf{y}) \\
+# =L^{-T}(L^{-1}\mathbf{y}) \\
+# =L^{-T}L^{-1}\mathbf{y} \\
+# =(LL^{T})^{-1}\mathbf{y} \\
+# =(K + \sigma_n^2 )^{-1}\mathbf{y} \\
+# $$
+# Finally to get equation (2.25) we substitute in $\bar{f}_* = k_*^T \mathbf{\alpha}$ to get $\bar{f}_* = k_*^T (K + \sigma_n^2 I)^{-1} \mathbf{y}$
+#
+# By similar reasoning for equation (2.26) we let $\mathbf{v} = L \backslash\mathbf{k_*}$ from the algorithm such that:
+# $$
+# \mathbb{V}[f_*] = k(\mathbf{x_*}, \mathbf{x_*}) - \mathbf{v}^T\mathbf{v} \\
+# = k(\mathbf{x_*}, \mathbf{x_*}) - (L \backslash\mathbf{k_*})^T(L \backslash\mathbf{k_*}) \\
+# = k(\mathbf{x_*}, \mathbf{x_*}) - (L^{-1} \mathbf{k_*})^T(L^{-1}\mathbf{k_*}) \\
+# = k(\mathbf{x_*}, \mathbf{x_*}) - \mathbf{k_*}^T L^{-T}L^{-1}\mathbf{k_*} \\
+# = k(\mathbf{x_*}, \mathbf{x_*}) - \mathbf{k_*}^T (K + \sigma_n^2 )^{-1}\mathbf{k_*} \\
+# $$
+#
+# Finally for equation (2.30) we solve for $\log p(\mathbf{y}|X)$:
+# $$
+# \log p(\mathbf{y}|X) = -\frac{1}{2}\mathbf{y}^T\mathbf{\alpha} - \sum_i \log L_{ii} - \frac{n}{2}\log 2\pi \\
+# = -\frac{1}{2}\mathbf{y}^T(K + \sigma_n^2 )^{-1}\mathbf{y} - \sum_i \log L_{ii} - \frac{n}{2}\log 2\pi
+# $$
+# From here focusing on the second term we note that we can:
+# $$
+# |K + \sigma_n^2 I| = |LL^T| =|LL^T| = |L||L^T| = |L|^2\\
+# |L| = \prod_i L_{ii}
+# $$
+# Since we are taking a log we can directly substitute back in:
+# $$
+# \log p(\mathbf{y}|X) = -\frac{1}{2}\mathbf{y}^T(K + \sigma_n^2 )^{-1}\mathbf{y} - \log(|K + \sigma_n^2 I|^\frac{1}{2}) - \frac{n}{2}\log 2\pi \\
+# = -\frac{1}{2}\mathbf{y}^T(K + \sigma_n^2 )^{-1}\mathbf{y} - \frac{1}{2}\log|K + \sigma_n^2 I| - \frac{n}{2}\log 2\pi \\
+# $$
 # </div>
-
-# mean:
-# $$K(X_*,X)K(X,X)^{-1}\mathbf{f}
-# $$
-#
-# Covariance:
-# $$\Sigma_* = K(X_*, X_*) - K(X_*, X) K(X, X)^{-1} K(X, X_*) \\
-#
-# p(\mathbf{f}_*| X_*, X, \mathbf{y}) = \mathcal{N}(K(X_*,X)[K(X,X)+\sigma_\epsilon^2I]^{-1}\mathbf{y}, K(X_*,X_*)-K(X_*,X)[K(X,X)+\sigma_\epsilon^2I]^{-1}K(X,X_*)).
-#
-# $$
 
 # +
 
