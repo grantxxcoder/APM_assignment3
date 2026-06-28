@@ -394,7 +394,7 @@ Image('./figures/gp_posterior_plot_sklearn.png')
 # **Answer**
 # We map all the values from the posterior $\mathbf{f_*}$ to A.6 in \[[1](#References)\], ie match it to this equation:  $N(\mu_x, A), and x|y \sim N(\mu_x + CB^{−1}(y − \mu_y ),   A − CB^{−1}C^T)$
 #
-# For example let $\mu_x = \mathbf{0}$ and $(\mathbf{y} - \mu_y) = \mathbf{f}$ and then let C = K(X) .... etc
+# For example let $\mu_x = \mathbf{0}$ and $(\mathbf{y} - \mu_y) = \mathbf{f}$ and then let C = K(X) .... etc TODO
 # </div>
 
 # **Matrix Inversion Instability** Matrix inversion is known to be numerically unstable. To address this issue, we will instead use Cholesky factorization (see appendix A.4 of \[[1](#References)\]) to try and achieve numerically stable computation of the new covariance matrix. 
@@ -611,7 +611,7 @@ plot(X1_noise, y1_noise, X_star, y_pred_mean_noise_high, np.sqrt(np.diag(y_pred_
 # <div class="alert alert-block alert-info">
 #
 # **Discussion**
-#
+# TODO
 #     
 # </div>
 
@@ -979,7 +979,7 @@ plt.show()
 #
 # **Question 2.1** Explain how the exchangeability assumption is related to the i.i.d. assumption, and how de Finetti's theorem allows us to move between them.
 #
-# **Answer** TODO clean up
+# **Answer**
 # The exchangeable property states that a sequence of random variables is exchangeable if their joint distributions are invariant to ordering. Ie:
 # $$p(Y_1, \ldots, Y_N) = p(Y_{\pi(1)}, \ldots, Y_{\pi(N)})$$
 # where $\pi$ is a permutation of the indices $\{1, \dots, N\}$. 
@@ -1752,8 +1752,8 @@ K = len(phi)
 for i, k in enumerate(phi.keys()):
     d = Y[c==k].reshape(-1,2)
     plt.scatter(d[:,0], d[:,1], alpha=0.6)
-    plt.scatter(phi[k][0][0], phi[k][0][1], marker='x', s=100,linewidths=2.0)
-    confidence_ellipse(phi[k][1], phi[k][0], plt.gca(), n_std=2.0, edgecolor='tab:blue')
+    plt.scatter(phi[k][0][0], phi[k][0][1], marker='x', color='black' s=100,linewidths=2.0)
+    confidence_ellipse(phi[k][1], phi[k][0], plt.gca(), n_std=2.0, edgecolor='black')
     plt.show()
 
 # -
@@ -1940,7 +1940,7 @@ plt.show()
 # **Question 2.2.3** In some of the algorithms above, the fit exhibited quite a large number of clusters compared to the true number of clusters (5).  This seems like evidence of overfitting.  Discuss.  
 #     
 # **Answer** 
-#
+# For starters, each algorithm is sampling from the same base posterior distribution. When looking at the above results, the only algorithm that produces more clusters than the true amount is in algorithm 1. This is because of the previously mentioned in question 2.2.2 where the markov chain gets stuck. We can see that if there is an observation that lies even slightly outside of the cluster, the algorithm assigns it a brand new cluster. The new cluster cannot grow its bounds to accept more observations. In terms of overfitting, none of these algorithms are presenting evidence of overfitting. Overfitting in this context one would see clusters forming on the outlier points of the data. This would be the algorithm memorising the training data. In algorithm one, the excess clusters are not the result of overfitting, but as the result of the mechanical failures of the algorithm.
 # </div>
 
 # # References
