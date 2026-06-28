@@ -440,7 +440,7 @@ Image('./figures/gp_posterior_plot_sklearn.png')
 # |K + \sigma_n^2 I| = |LL^T| =|LL^T| = |L||L^T| = |L|^2\\
 # |L| = \prod_i L_{ii}
 # $$
-# Since we are taking a log we can directly substitute back in:
+# Since we are taking a log the product turns into a sum and we can directly substitute back in:
 # $$
 # \log p(\mathbf{y}|X) = -\frac{1}{2}\mathbf{y}^T(K + \sigma_n^2 )^{-1}\mathbf{y} - \log(|K + \sigma_n^2 I|^\frac{1}{2}) - \frac{n}{2}\log 2\pi \\
 # = -\frac{1}{2}\mathbf{y}^T(K + \sigma_n^2 )^{-1}\mathbf{y} - \frac{1}{2}\log|K + \sigma_n^2 I| - \frac{n}{2}\log 2\pi \\
@@ -1063,7 +1063,7 @@ plt.show()
 # S_N &= S_0 + \sum_{i=1}^N (\mathbf{y}_i - \bar{\mathbf{y}})(\mathbf{y}_i - \bar{\mathbf{y}})^T + \frac{\lambda_0 N}{\lambda_0 + N} (\bar{\mathbf{y}} - \mu_0)(\bar{\mathbf{y}} - \mu_0)^T
 # \end{aligned}$$
 #
-# Interpretation of NIW Parameters
+# Interpretation of NIW Parameters (This is ChatGPT - refine this answer TODO)
 #
 #
 # $\mu_0$ (Prior Mean): This is the expected location of the distribution's mean vector. As seen in the update equations, the posterior mean $\mu_N$ is a convex combination of this prior mean $\mu_0$ and the empirical sample mean $\bar{\mathbf{y}}$.
@@ -1435,7 +1435,48 @@ class GibbsSampler:
 #
 #
 # **Answer**
+# We start with the following, let $\theta_n = c_n,\mu, \Sigma$: 
+# $$
+# p(\mathbf{y}_n|\theta_n) \sim \mathcal{N}(\mu_{c_n}, \Sigma_{c_n}) \\
+# $$
+# Then by Neal's equation (3.1) we have:
+# $$p(\theta_n | \theta_{\lnot n}) = \frac{1}{n-1+\alpha} \sum_{j \neq n} \delta_{\theta_j}(\theta_n) + \frac{\alpha}{n-1+\alpha} p(\theta)$$
+# (Note: $p(\theta)$ represents the base distribution, which we evaluate for the new parameter $\theta_n$, which gets written as $p(\theta_n)$).
+# Then with Bayes theorem we have:
+# $$
+# p(\theta_n|\theta_{\neg n}, \mathbf{y}_n) = \frac{p(\theta_n,\theta_{\neg n}, \mathbf{y}_n)}{p(\theta_{\neg n}, \mathbf{y}_n)} \\
+# \propto p(\theta_n, \theta_{\neg n}, \mathbf{y}_n) \\
+# \propto p(\mathbf{y}_n|\theta_n, \theta_{\neg n})p(\theta_n| \theta_{\neg n}) 
+# $$
+# Because the observation $\mathbf{y}_n$ is conditionally independent of all other parameters $\theta_{\lnot n}$ given its own parameter $\theta_n$, we can drop $\theta_{\lnot n}$ from the likelihood term:
+# $$p(\theta_n|\theta_{\neg n}, \mathbf{y}_n) \propto p(\mathbf{y}_n|\theta_n)p(\theta_n| \theta_{\neg n}) $$
+# We can thus continue:
+# $$
+# = p(\mathbf{y}_n|\theta_n)\left[\frac{1}{n-1+\alpha} \sum_{j \neq n} \delta_{\theta_j}(\theta_n) + \alpha p(\theta_n)\right] \\
+# \propto p(\mathbf{y}_n|\theta_n)\left[\sum_{j \neq n} \delta_{\theta_j}(\theta_n) + \alpha p(\theta_n)\right]\\
+# \propto \sum_{j \neq n} p(\mathbf{y}_n|\theta_n)\delta_{\theta_j}(\theta_n) + p(\mathbf{y}_n|\theta_n)\alpha p(\theta_n)\\
+# $$
 #
+# At this point we analyse the dirac function in which it has a property where $\delta_{\theta_j}(\theta_n)$ is $0$ everywhere except where $\theta_n = \theta_j$.
+# $$
+# p(\theta_n|\theta_{\neg n}, \mathbf{y}_n) = \sum_{j \neq n} p(\mathbf{y}_n|\theta_j)\delta_{\theta_j}(\theta_n) + p(\mathbf{y}_n|\theta_n)\alpha p(\theta_n)\\
+# $$
+#
+# Then in the definitions we defined: 
+# $$
+# q_{n,j} = b\cdot p(\mathbf{y}_n|\theta_j) = b\cdot \mathcal{N}(\mathbf{y}_n|\mu_{c_j}, \Sigma_{c_j}) \\
+# q_0 = b \alpha\cdot\int p(\mathbf{y}_n|\theta)p(\theta)\:d\theta = b\alpha \cdot p(\mathbf{y}_n)
+# $$
+#
+# Therefore subbing in for $q_{n,j}$ and discarding the constant we get:
+# $$
+# p(\theta_n|\theta_{\neg n}, \mathbf{y}_n) = \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) + \alpha p(\mathbf{y}_n|\theta_n) p(\theta_n)\\
+# = \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) + \alpha\left[p(\mathbf{y}_n|\theta_n) p(\theta_n)\right]\frac{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta}{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta} \\
+# = \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  \left[\alpha \int p(\mathbf{y}_n | \theta) p(\theta) d\theta\right]\left[\frac{p(\mathbf{y}_n|\theta_n) p(\theta_n)}{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta}\right] \\
+# = \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  \left[\alpha \cdot p(\mathbf{y}_n)\right]\left[\frac{p(\mathbf{y}_n|\theta_n) p(\theta_n)}{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta}\right] \\
+# = \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  q_0\left[\frac{p(\mathbf{y}_n|\theta_n) p(\theta_n)}{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta}\right] \text{ (Use Bayes rule to simplify)} \\
+# = \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  q_0 p(\theta_n|\mathbf{y}_n) \\
+# $$
 # </div>
 
 # <div class="alert alert-block alert-info">
