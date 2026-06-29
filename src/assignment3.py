@@ -1145,7 +1145,52 @@ class NIW:
 # $$
 #
 # **Answer**
+# Considering the prior:
+# $$
+# \begin{aligned}
+# \mathbf{p} &\sim \text{Dir}\left(\frac{\alpha}{K},\ldots,\frac{\alpha}{K}\right) \\
+# p(\mathbf{p}) &= \frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \prod_{j=1}^K p_j^{\frac{\alpha}{K} - 1}
+# \end{aligned}
+# $$
+# Then considering the cluster assignments:
+# $$
+# \begin{aligned}
+# c_n|\mathbf{p} &\sim \text{Discrete}(p_1,\ldots,p_K) \\
+# \end{aligned}
+# $$
+# Therefore since each cluster is assumed to be i.i.d we can say that all the cluster assignments from timestep 1 to $n-1$ is:
+# $$p(\mathbf{c}_{1:n-1}|\mathbf{p}) = \prod_{j=1}^K p_j^{m_{n,j}}$$
+# where $m_{n,j}$ denotes the number of times class $j$ appears up until observation $n-1$.
 #
+# Therefore the denominatior is calculated as:
+# $$
+# \begin{aligned}
+# \int p(\mathbf{c}_{1:n-1}|\mathbf{p})p(\mathbf{p})\:d\mathbf{p} &= \int \prod_{j=1}^K p_j^{m_{n,j}} \frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \prod_{j=1}^K p_j^{\frac{\alpha}{K} - 1} \:d\mathbf{p}\\
+# &= \frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \int \prod_{j=1}^K p_j^{m_{n,j}} p_j^{\frac{\alpha}{K} - 1} \:d\mathbf{p} \\
+# &= \frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \int \underbrace{\prod_{j=1}^K p_j^{m_{n,j}+\frac{\alpha}{K} - 1}}_{\text{Unnormalised Dirichlet}} \:d\mathbf{p} \\
+# &= \frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \frac{\prod_{j=1}^K \Gamma(m_{n,j} + \frac{\alpha}{K})}{\Gamma(\sum_{j=1}^K(m_{n,j} + \frac{\alpha}{K}))} \\
+# \end{aligned}
+# $$
+# We know that $\sum_{j=1}^Km_{n,j}$ is just counting all the previous observations and finally $\sum_{j=1}^K\frac{\alpha}{K} = \alpha$, therefore:
+# $$
+# \int p(\mathbf{c}_{1:n-1}|\mathbf{p})p(\mathbf{p})\:d\mathbf{p} = \frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \frac{\prod_{j=1}^K \Gamma(m_{n,j} + \frac{\alpha}{K})}{\Gamma(n -1 +\alpha)}
+# $$
+#
+# Now the numerator follows the same logic except we only have one additional cluster assignment to keep track of which is for observation $n$. Therefore the numerator just becomes:
+# $$
+# \int p(c_n=k, \mathbf{c}_{1:n-1}|\mathbf{p})p(\mathbf{p})\:d\mathbf{p} = \frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \frac{\Gamma(m_{n, k}+ 1+\frac{\alpha}{K}) \prod_{j=1, j\neq k}^K \Gamma(m_{n,j} + \frac{\alpha}{K})}{\Gamma(n + \alpha)}
+# $$
+#
+# Thus to simplify we can do the following:
+# $$
+# \begin{aligned}
+# \frac{\frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \frac{\Gamma(m_{n, k}+ 1+\frac{\alpha}{K}) \prod_{j=1, j\neq k}^K \Gamma(m_{n,j} + \frac{\alpha}{K})}{\Gamma(n + \alpha)}}{\frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \frac{\prod_{j=1}^K \Gamma(m_{n,j} + \frac{\alpha}{K})}{\Gamma(n -1 +\alpha)}} &= \frac{\Gamma(n -1 +\alpha)\Gamma(m_{n, k}+ 1+\frac{\alpha}{K}) \prod_{j=1, j\neq k}^K \Gamma(m_{n,j} + \frac{\alpha}{K})}{\Gamma(n + \alpha) \prod_{j=1}^K \Gamma(m_{n,j} + \frac{\alpha}{K})} \\
+#
+# &= \frac{\Gamma(n -1 +\alpha)\Gamma(m_{n, k}+ 1+\frac{\alpha}{K})}{\Gamma(n + \alpha)\Gamma(m_{n,k} + \frac{\alpha}{K})} \\
+# &= \frac{\Gamma(n -1 +\alpha) (m_{n, k}+ \frac{\alpha}{K}) \Gamma(m_{n, k}+ \frac{\alpha}{K})}{(n -1+ \alpha)\Gamma(n -1+ \alpha)\Gamma(m_{n,k} + \frac{\alpha}{K})} \\
+# &= \frac{m_{n, k}+ \frac{\alpha}{K}}{n -1+ \alpha} \\
+# \end{aligned}
+# $$
 # </div>
 
 # If we now let $K\rightarrow\infty$, these conditional probabilties reach the following limits:
@@ -1162,8 +1207,37 @@ class NIW:
 # **Question 2.1.2** Explain how the second formula above, $p(c_n \neq c_j \:\: \forall \:\: j < n|\mathbf{c}_{1:n-1}) \rightarrow \frac{\alpha}{n-1+\alpha}$, is derived.
 #     
 # **Answer** 
-#     
-#
+# Since we have that 
+# $$
+# \begin{aligned}
+# p(c_n=k|\mathbf{c}_{1:n-1}) &=  \frac{m_{n,k} + \frac{\alpha}{K}}{n-1 + \alpha}
+# \end{aligned}
+# $$
+# However, if this is a new cluster ($k^*$) that has never been previously seen we know that $m_{n,k^*} = 0$.
+# $$
+# \begin{aligned}
+# p(c_n=k^*|\mathbf{c}_{1:n-1}) &=  \frac{\frac{\alpha}{K}}{n-1 + \alpha}
+# \end{aligned}
+# $$
+# There are multiple potential new clusters to choose from. Suppose we have the clusters ordered such that the first $K_{obs}$ clusters are the ones already occupied by the previous $n-1$ observations. Then, we can only choose a new cluster from the remaining unobserved clusters, which range from index $K_{obs}+1$ to $K$. Since the probability of choosing any one of these empty clusters is equally likely, and choosing one is mutually exclusive from choosing another, we use the probability union rule to sum their individual probabilities:
+# $$
+# P(c_n = K_{obs} + 1 \cup \dots \cup c_n= K) = \sum_{k^* = K_{obs}+1}^K \frac{\frac{\alpha}{K}}{n-1 + \alpha} \\
+# $$
+# Therefore we can finish with:
+# $$
+# \begin{align*}
+# p(c_n \neq c_j \:\: \forall \:\: j < n|\mathbf{c}_{1:n-1}) &= \sum_{k^* = K_{obs}+1}^K \frac{\frac{\alpha}{K}}{n-1 + \alpha} \\
+# &= (K - K_{obs}) \left( \frac{\frac{\alpha}{K}}{n-1 + \alpha} \right) \\
+# &= \left( \frac{K - K_{obs}}{K} \right) \frac{\alpha}{n-1 + \alpha} \\
+# &= \left( 1 - \frac{K_{obs}}{K} \right) \frac{\alpha}{n-1 + \alpha}
+# \end{align*}
+# $$
+# Finally, we take the limit as the total number of classes $K \to \infty$:
+# $$
+# \begin{equation*}
+# \lim_{K \to \infty} \left( 1 - \frac{K_{obs}}{K} \right) \frac{\alpha}{n-1 + \alpha} = (1 - 0) \frac{\alpha}{n-1 + \alpha} = \frac{\alpha}{n-1 + \alpha}
+# \end{equation*}
+# $$
 # </div>
 
 # Note that "since the $c_n$ are significant only in so far as they are or are not equal to other $c_j$, the above probabilities are all that are needed to define the model." \[[2](#References)\]
