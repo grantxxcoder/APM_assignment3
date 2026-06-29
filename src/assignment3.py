@@ -1258,7 +1258,22 @@ plot_inf_gmm(1000)
 # **Question 2.1.3** Explain the relationship between the Dirichlet distribution, a Dirichlet process, the Chinese restaurant process, and the stick-breaking construction.
 #     
 # **Answer**
-#     
+#
+# $\textbf{Dirichlet Distribution}$: This is a distribution over distributions defined by $\mathbf{p} \sim Dir(\alpha_1, \dots, \alpha_K)$ where $\mathbf{p}$ is a K-dimensional vector that sums to one. The probability density function (PDF) of the Dirichlet distribution of where $K \ge 2$ with parameter vector $\boldsymbol{\alpha} = (\alpha_1, \dots, \alpha_K)$ where $\alpha_i > 0$ is given by:
+# $$f(\mathbf{x}; \boldsymbol{\alpha}) = \frac{1}{\mathrm{B}(\boldsymbol{\alpha})} \prod_{i=1}^K x_i^{\alpha_i - 1}$$
+# where the beta dunction is used as a normalising constant.
+#
+# $\textbf{Dirichlet Process}$: A Dirichlet Process (DP) generalises the Dirichlet distribution. Instead of having a K-dimensional vector with K components, we generalise it to a distribution. We then govern this process using two parameters for $G \sim DP(\alpha, H)$. We use $\alpha \gt 0$ as a concentration paramter and the H as the prior for the distribution. When we sample from a DP we are sampling a point from a distribution that was selected over a different distribution.
+#
+# $\textbf{Chinese Restaurant}$: The idea is to create a distribution over some collection, say over integers ${1, \dots, n}$, by iteratively grouping an integer in a cluster of other integers that is already formed, or by forming a new cluster with some probability. It relates to the DP as we have some set of parameters $\theta_1, \cdots, \theta_n$ which control each cluster. Each $\theta_i \overset{\text{iid}}{\sim} G$ where G is the DP. Essentially we integrate out G so that we are left with some final distribution over all the parameters. 
+#
+# $\textbf{Stick breaking Process}$: The stick breaking process can be thought of taking one stick, and breaking off a piece. Then for every subsequent break, it is broken off of the remaining piece. In the context of DP, it governs how to construct the distribution for G for all the cluster parameters. Essentially, it is the process by which to find where a cluster resides and how much weight to assign to it. Ie suppose:
+# $$
+# G = \sum_{k=1}^\infty \pi_k \delta_{\theta_k^*}
+# $$
+# where $\theta_k^*$ dictates the parameter values, and $\pi_k $ dictates the probability of being assigned that cluster.
+#
+# $\textbf{Put together}$: The stick-breaking process provides an explicit method to generate a draw $G$ from the DP by sequentially defining its exact cluster weights ($\pi_k$) and locations ($\theta_k^*$). Then if we only focus on the predictive distribution of the observations, we obtain the Chinese Restaurant Process (CRP). In short: the stick-breaking process provides the generative view of the DP, while the CRP shows how the data points naturally cluster as a result of the DP.
 # </div>
 
 # #### Effect of the Concentration Parameter $\alpha$
