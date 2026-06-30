@@ -8,7 +8,7 @@
 #       format_version: '1.5'
 #       jupytext_version: 1.17.1
 #   kernelspec:
-#     display_name: apm
+#     display_name: Python 3 (ipykernel)
 #     language: python
 #     name: python3
 # ---
@@ -147,14 +147,16 @@ plt.show()
 # $$
 # and since the normalising constant is not dependent on the weights we can write this proportionally as the likelihood multiplied by the prior:
 # $$
-# p(\mathbf{w}|X,\mathbf{y}) \propto p(\mathbf{y}|X,\mathbf{w})p(\mathbf{w}) \\
-# \propto \frac{1}{(2\pi\sigma_n^2)^\frac{n}{2}}\exp \left({\frac{-1}{2\sigma_n^2}(\mathbf{y}-X^T\mathbf{w})^T (\mathbf{y}-X^T\mathbf{w})}\right) \exp \left(\frac{-1}{2}\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right) \\
-# \propto \exp \left({\frac{-1}{2\sigma_n^2}(\mathbf{y}-X^T\mathbf{w})^T (\mathbf{y}-X^T\mathbf{w})}-\frac{1}{2}\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right) \\
-# \propto \exp \left(\frac{-1}{2}\left(\frac{1}{\sigma_n^2}(\mathbf{y}-X^T\mathbf{w})^T (\mathbf{y}-X^T\mathbf{w})+\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right)\right) \\
-# \propto \exp \left(\frac{-1}{2}\left(\frac{1}{\sigma_n^2}(\mathbf{y}^T\mathbf{y} - \mathbf{y}^T X^T\mathbf{w} - \mathbf{w}^T X\mathbf{y} + \mathbf{w}^T X X^T\mathbf{w})+\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right)\right) \\
-# \propto \exp \left(\frac{-1}{2}\left(\frac{1}{\sigma_n^2}(\mathbf{y}^T\mathbf{y} - 2\mathbf{w}^T X\mathbf{y} + \mathbf{w}^T X X^T\mathbf{w})+\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right)\right) \text{ (group $\mathbf{w}$ and $\mathbf{w}^T$)}\\
-# \propto \exp \left(\frac{-1}{2}\left(\mathbf{w}^T \left(\frac{1}{\sigma_n^2}X X^T + \Sigma_p^{-1}\right) \mathbf{w} - \frac{2}{\sigma_n^2}\mathbf{w}^T X\mathbf{y} + \frac{1}{\sigma_n^2}\mathbf{y}^T\mathbf{y}\right)\right) \text{ ( we drop constant)}\\
-# \propto \exp \left(\frac{-1}{2}\left(\mathbf{w}^T \left(\frac{1}{\sigma_n^2}X X^T + \Sigma_p^{-1}\right) \mathbf{w} - \frac{2}{\sigma_n^2}\mathbf{w}^T X\mathbf{y} \right)\right) \\
+# \begin{aligned}
+# p(\mathbf{w}|X,\mathbf{y}) &\propto p(\mathbf{y}|X,\mathbf{w})p(\mathbf{w}) \\
+# &\propto \frac{1}{(2\pi\sigma_n^2)^\frac{n}{2}}\exp \left({\frac{-1}{2\sigma_n^2}(\mathbf{y}-X^T\mathbf{w})^T (\mathbf{y}-X^T\mathbf{w})}\right) \exp \left(\frac{-1}{2}\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right) \\
+# &\propto \exp \left({\frac{-1}{2\sigma_n^2}(\mathbf{y}-X^T\mathbf{w})^T (\mathbf{y}-X^T\mathbf{w})}-\frac{1}{2}\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right) \\
+# &\propto \exp \left(\frac{-1}{2}\left(\frac{1}{\sigma_n^2}(\mathbf{y}-X^T\mathbf{w})^T (\mathbf{y}-X^T\mathbf{w})+\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right)\right) \\
+# &\propto \exp \left(\frac{-1}{2}\left(\frac{1}{\sigma_n^2}(\mathbf{y}^T\mathbf{y} - \mathbf{y}^T X^T\mathbf{w} - \mathbf{w}^T X\mathbf{y} + \mathbf{w}^T X X^T\mathbf{w})+\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right)\right) \\
+# &\propto \exp \left(\frac{-1}{2}\left(\frac{1}{\sigma_n^2}(\mathbf{y}^T\mathbf{y} - 2\mathbf{w}^T X\mathbf{y} + \mathbf{w}^T X X^T\mathbf{w})+\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right)\right) \text{ (group $\mathbf{w}$ and $\mathbf{w}^T$)}\\
+# &\propto \exp \left(\frac{-1}{2}\left(\mathbf{w}^T \left(\frac{1}{\sigma_n^2}X X^T + \Sigma_p^{-1}\right) \mathbf{w} - \frac{2}{\sigma_n^2}\mathbf{w}^T X\mathbf{y} + \frac{1}{\sigma_n^2}\mathbf{y}^T\mathbf{y}\right)\right) \text{ ( we drop constant)}\\
+# &\propto \exp \left(\frac{-1}{2}\left(\mathbf{w}^T \left(\frac{1}{\sigma_n^2}X X^T + \Sigma_p^{-1}\right) \mathbf{w} - \frac{2}{\sigma_n^2}\mathbf{w}^T X\mathbf{y} \right)\right) \\
+# \end{aligned}
 # $$
 # The next step requires letting $A = \frac{1}{\sigma_n^2}X X^T + \Sigma_p^{-1}$ and $\bar{\mathbf{w}} = \frac{1}{\sigma_n^2} A^{-1} X\mathbf{y}$:
 #
@@ -283,7 +285,6 @@ def plot_GP_prior(X, kernel, num_samples):
     # SOLUTION_END
 
 
-
 # +
 # Choose a number of input points - draw enough, so that when we 
 # plot the corresponding function samples, they appear continuous
@@ -370,7 +371,7 @@ def plot_GP_posterior(X, y, X_new, y_pred_mean, y_pred_std, samples):
     plt.show()
     # SOLUTION_END
 
-   
+
 
 # +
 # Choose a number of new input points - draw enough, so that when we 
@@ -1244,10 +1245,10 @@ class NIW:
 # $$
 #
 # Thus to simplify we can do the following and keep note that $\Gamma(x+1) = x\Gamma(x)$:
+#
 # $$
 # \begin{aligned}
 # \frac{\frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \frac{\Gamma(m_{n, k}+ 1+\frac{\alpha}{K}) \prod_{j=1, j\neq k}^K \Gamma(m_{n,j} + \frac{\alpha}{K})}{\Gamma(n + \alpha)}}{\frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \frac{\prod_{j=1}^K \Gamma(m_{n,j} + \frac{\alpha}{K})}{\Gamma(n -1 +\alpha)}} &= \frac{\Gamma(n -1 +\alpha)\Gamma(m_{n, k}+ 1+\frac{\alpha}{K}) \prod_{j=1, j\neq k}^K \Gamma(m_{n,j} + \frac{\alpha}{K})}{\Gamma(n + \alpha) \prod_{j=1}^K \Gamma(m_{n,j} + \frac{\alpha}{K})} \\
-#
 # &= \frac{\Gamma(n -1 +\alpha)\Gamma(m_{n, k}+ 1+\frac{\alpha}{K})}{\Gamma(n + \alpha)\Gamma(m_{n,k} + \frac{\alpha}{K})} \\
 # &= \frac{\Gamma(n -1 +\alpha) (m_{n, k}+ \frac{\alpha}{K}) \Gamma(m_{n, k}+ \frac{\alpha}{K})}{(n -1+ \alpha)\Gamma(n -1+ \alpha)\Gamma(m_{n,k} + \frac{\alpha}{K})} \\
 # &= \frac{m_{n, k}+ \frac{\alpha}{K}}{n -1+ \alpha} \\
@@ -1630,12 +1631,14 @@ class GibbsSampler:
 #
 # Therefore subbing in for $q_{n,j}$ and discarding the constant we get:
 # $$
-# p(\theta_n|\theta_{\neg n}, \mathbf{y}_n) = \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) + \alpha p(\mathbf{y}_n|\theta_n) p(\theta_n)\\
-# = \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) + \alpha\left[p(\mathbf{y}_n|\theta_n) p(\theta_n)\right]\frac{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta}{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta} \\
-# = \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  \left[\alpha \int p(\mathbf{y}_n | \theta) p(\theta) d\theta\right]\left[\frac{p(\mathbf{y}_n|\theta_n) p(\theta_n)}{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta}\right] \\
-# = \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  \left[\alpha \cdot p(\mathbf{y}_n)\right]\left[\frac{p(\mathbf{y}_n|\theta_n) p(\theta_n)}{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta}\right] \\
-# = \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  q_0\left[\frac{p(\mathbf{y}_n|\theta_n) p(\theta_n)}{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta}\right] \text{ (Use Bayes rule to simplify)} \\
-# = \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  q_0 p(\theta_n|\mathbf{y}_n) \\
+# \begin{aligned}
+# p(\theta_n|\theta_{\neg n}, \mathbf{y}_n) &= \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) + \alpha p(\mathbf{y}_n|\theta_n) p(\theta_n)\\
+# &= \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) + \alpha\left[p(\mathbf{y}_n|\theta_n) p(\theta_n)\right]\frac{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta}{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta} \\
+# &= \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  \left[\alpha \int p(\mathbf{y}_n | \theta) p(\theta) d\theta\right]\left[\frac{p(\mathbf{y}_n|\theta_n) p(\theta_n)}{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta}\right] \\
+# &= \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  \left[\alpha \cdot p(\mathbf{y}_n)\right]\left[\frac{p(\mathbf{y}_n|\theta_n) p(\theta_n)}{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta}\right] \\
+# &= \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  q_0\left[\frac{p(\mathbf{y}_n|\theta_n) p(\theta_n)}{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta}\right] \text{ (Use Bayes rule to simplify)} \\
+# &= \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  q_0 p(\theta_n|\mathbf{y}_n) \\
+# \end{aligned}
 # $$
 # </div>
 
@@ -2000,7 +2003,7 @@ class GibbsSampler3(GibbsSampler):
             # Posterior predictive is a multivariate t, not a sampled Gaussian
             df = nu_n - self.D + 1
             scale = S_n * (lambda_n + 1) / (lambda_n * df)
-            p_k_yn = multivariate_t(loc=mu_n, shape=scale, df=df).pdf(y_n)  # ← t-distribution
+            p_k_yn = multivariate_t(loc=mu_n, shape=scale, df=df).pdf(y_n)  # t-distribution
             
             p_c_given_y[i] = (m_not_nk[i] / denominator) * p_k_yn
 
@@ -2067,8 +2070,6 @@ plt.xlabel('Iteration')
 plt.ylabel(r'$\log \: p(c, \phi|Y)$')
 plt.show()
 # SOLUTION_END
-
-
 
 #   Check evolution of the number of clusters used
 # SOLUTION_START
