@@ -8,7 +8,7 @@
 #       format_version: '1.5'
 #       jupytext_version: 1.17.1
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: apm
 #     language: python
 #     name: python3
 # ---
@@ -979,9 +979,7 @@ y_true = np.sin(X_test).ravel()
 kernel_rbf = C(1.0, (1e-3, 1e3)) * RBF(1.0, (1e-2, 1e2))
 
 # Periodic Kernel 
-kernel_periodic = C(1.0, (1e-3, 1e3)) * ExpSineSquared(length_scale=1.0, periodicity=2*np.pi,
-                                                       length_scale_bounds=(1e-2, 1e2),
-                                                       periodicity_bounds=(1e-1, 10))
+kernel_periodic = C(1.0, (1e-3, 1e3)) * ExpSineSquared(length_scale=1.0, periodicity=2*np.pi, length_scale_bounds=(1e-2, 1e2), periodicity_bounds=(1e-1, 10))
 
 gp_rbf = gp.GaussianProcessRegressor(kernel=kernel_rbf, alpha=0.1**2, n_restarts_optimizer=10)
 gp_rbf.fit(X_train, y_train)
@@ -997,15 +995,15 @@ ax1.plot(X_test, y_true, label='True Function', linestyle='--')
 ax1.scatter(X_train, y_train, label='Training Data', zorder=3)
 ax1.plot(X_test, y_pred_rbf, label='RBF Mean')
 ax1.fill_between(X_test.ravel(), y_pred_rbf - 1.96 * std_rbf, y_pred_rbf + 1.96 * std_rbf, alpha=0.2, label='95% CI')
-ax1.set_title(f'RBF Kernel (Fails to extrapolate and connect the gap)')
+ax1.set_title(f'RBF Kernel')
 ax1.legend()
 
 ax2.plot(X_test, y_true, label='True Function', linestyle='--')
 ax2.scatter(X_train, y_train, label='Training Data', zorder=3)
 ax2.plot(X_test, y_pred_per, label='Periodic Mean')
 ax2.fill_between(X_test.ravel(), y_pred_per - 1.96 * std_per, y_pred_per + 1.96 * std_per, alpha=0.2, label='95% CI')
-ax2.set_title(f'Periodic Kernel (Successfully captures circular geometry)')
-ax2.set_xlabel('X (e.g., Time or Angle)')
+ax2.set_title(f'Periodic Kernel')
+ax2.set_xlabel('X')
 ax2.legend()
 
 plt.tight_layout()
@@ -1018,6 +1016,7 @@ plt.show()
 #
 # Discuss: In this example, we use periodic data to test the RBF kernel. The dataset is a continuous, periodic function (a sine wave) with significant gaps in the training data. As can be seen in the first graph, the kernel fails to generalise the shape of the underlying data distribution where we see a large variance in the estimation of the mean. This is because it is a stationary kernel. When trying to predict for $X>10$, the test points are too far from the training points relative to the length scale. At that stage the prediction will revert back to the mean assumption and hence we see the mean converge to 0. The periodic kernel where the exponential sinus squared kernel is used, captures the underlying data well. It works well as it maps the 1D space into a circular 2D unit circle based on the period $p$. By including this, we are able to encode cycles where points separated by a period are considered to have a distance of zero. This allows the data points used in previous cycles to be used in following cycles as if they were local to one another in space. 
 #
+# $\textbf{Ai declaration}$: We had the original idea of testing circular data on the RBF kernel, however was unfamiliar with the syntax and possible hyperparameters for the kernel functions. We made use of ChatGPT to give suggestions for this setup where it gave suggestions for the kernel functions' and regressors' hyper-parameters that would best demonstrate our idea of showing how circular data would fool the RBF kernel.
 # </div>
 
 # # 2. Dirichlet Processes for Infinite GMMs
@@ -1052,12 +1051,12 @@ plt.show()
 # $$p(Y_1, \ldots, Y_N) = p(Y_{\pi(1)}, \ldots, Y_{\pi(N)})$$
 # where $\pi$ is a permutation of the indices $\{1, \dots, N\}$. 
 #
-# The iid property of random variables has the following property:
+# The i.i.d. property of random variables has the following property:
 # $$p(Y_1, \dots, Y_N) =  \prod_{n=1}^N p(Y_n)$$
 #
 # Therefore, we can see that the iid property is a stronger assumption than exchangeability. The iid assumption implies exchangeability as we can take any permutation of the random variables due to their independence and thus reform the joint distribution. However, exchangeability does not imply iid as the invariance to order does not have any assumption over independence between random variables.
 #
-# The de Finnetti theorem states that an infinitely exchangeable sequence of random variables can have its joint distribution be represented as a mixture of conditionally independent and identically distributed distributions. Therefore over any distribution G for any N variables we have:
+# The de Finnetti theorem states that an infinitely exchangeable sequence of random variables can have its joint distribution be represented as a mixture of conditionally independent and identically distributed distributions. Therefore, over any distribution G for any N variables we have:
 # $$p(Y_1, \dots, Y_N) = \int \prod_{n=1}^N p(Y_n|G) \, dP(G)$$
 # This makes sense as if we find a distribution G to condition on with the conditional independence asssumption we can do the following: 
 # $$\begin{aligned}
@@ -1132,9 +1131,7 @@ plt.show()
 # \end{aligned}$$
 #
 # Interpretation of NIW Parameters:
-# The posterior mean $\mu_N$ is a weighted average of the prior mean and the sample mean, weighted by $\lambda_0$ and $N$, so it shifts towards the data as $N$ grows. Both $\lambda_N$ and $\nu_N$ just add $N$ to their prior values. The scale matrix $S_N$ adds together the prior scatter $S_0$, the scatter of the data about its own mean, and a term that grows when the sample mean disagrees with the prior mean.
-#
-# The prior parameters are easiest to read as imaginary data. $\mu_0$ is the prior guess for the mean, $\lambda_0$ is how many pseudo-observations support that guess (larger means more confident), $\nu_0$ is the same idea for the covariance and 
+# The posterior mean $\mu_N$ is a weighted average of the prior mean and the sample mean, weighted by $\lambda_0$ and $N$, so it shifts towards the data as $N$ grows. It thus represents the expected center for the data distribution. We use $\lambda_N$ to measure the certainty of our expected center. The scale matrix $S_N$ adds together the prior scatter $S_0$, the scatter of the data about its own mean, and a term that grows when the sample mean disagrees with the prior mean. We use this term to measure the shape of the data. Similarly to the $\lambda_N$, we use $\nu_N$ to measure the confidence of our scale term.
 # </div>
 
 # <div class="alert alert-block alert-info">
@@ -1254,6 +1251,8 @@ class NIW:
 # &= \frac{m_{n, k}+ \frac{\alpha}{K}}{n -1+ \alpha} \\
 # \end{aligned}
 # $$
+#
+# $\textbf{Ai Declaration}$: We made use of ChatGPT for ideas on how to simplify the expression that was given in the setup, where the response was to not cancel the $p(\mathbf{p})$ terms but expand it out. The resulting math however was computed by hand.
 # </div>
 
 # If we now let $K\rightarrow\infty$, these conditional probabilties reach the following limits:
@@ -1301,6 +1300,8 @@ class NIW:
 # \lim_{K \to \infty} \left( 1 - \frac{K_{obs}}{K} \right) \frac{\alpha}{n-1 + \alpha} = (1 - 0) \frac{\alpha}{n-1 + \alpha} = \frac{\alpha}{n-1 + \alpha}
 # \end{equation*}
 # $$
+#
+# $\textbf{Ai declaration}$: We made use of chatGPT for ideas on how to represent notationally choosing the remaining clusters where it made suggestion for the "$K_{obs}+1$ to $K$".
 # </div>
 
 # Note that "since the $c_n$ are significant only in so far as they are or are not equal to other $c_j$, the above probabilities are all that are needed to define the model." \[[2](#References)\]
@@ -1640,6 +1641,8 @@ class GibbsSampler:
 # &= \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  q_0 p(\theta_n|\mathbf{y}_n) \\
 # \end{aligned}
 # $$
+#
+# $\textbf{Ai declaration}$: For this question, we made use of ChatGPT to give the idea of using the dirac function property to simplify the expression.
 # </div>
 
 # <div class="alert alert-block alert-info">
@@ -1819,26 +1822,43 @@ class GibbsSampler2(GibbsSampler):
         #  Implement
         # SOLUTION_START
         N = len(c_not_n) + 1
-        m_not_nk = np.array([np.sum(c_not_n == c_k) for c_k in phi.keys()])
-
-        p_yn_given_phik = np.array([multivariate_normal(mean=phi[c_k][0], cov=phi[c_k][1]).pdf(y_n) for c_k in phi.keys()])
         denominator = N - 1 + self.alpha
-        p_c_given_y = np.zeros(len(phi) + 1)
 
+        num_existing_clusters = len(phi)
+        p_c_given_y = np.zeros(num_existing_clusters + 1)
+        existing_cluster_keys = list(phi.keys())
+        
+        for i, c_k in enumerate(existing_cluster_keys):
+            # Calculate CRP prior weight
+            m_not_n_k = np.sum(c_not_n == c_k)
+            prior_weight = m_not_n_k / denominator
+            cluster_mean = phi[c_k][0]
+            cluster_cov = phi[c_k][1]
+            likelihood = multivariate_normal(mean=cluster_mean, cov=cluster_cov).pdf(y_n)
+            
+            # this is the posterior
+            p_c_given_y[i] = prior_weight * likelihood
 
-        for i, c_k in enumerate(phi.keys()):
-            p_c_given_y[i] = (m_not_nk[i] / denominator) * p_yn_given_phik[i]
-        marginal_likelihood = self.log_marginal_likelihood(y_n)
-        p_c_given_y[-1] = (self.alpha / denominator) * np.exp(marginal_likelihood)
+        # proportional probability for a new cluster
+        new_cluster_prior_weight = self.alpha / denominator
+        marginal_likelihood = np.exp(self.log_marginal_likelihood(y_n))
+        
+        p_c_given_y[-1] = new_cluster_prior_weight * marginal_likelihood
         p_c_given_y /= np.sum(p_c_given_y)
 
+        # sample
+        choice_index = np.random.multinomial(1, p_c_given_y).argmax()
 
-        choice = np.random.multinomial(1, p_c_given_y).argmax()
-        if choice < len(phi):
-            c_n = list(phi.keys())[choice]
+        if choice_index < num_existing_clusters:
+            # Assign to the chosen existing cluster
+            c_n = existing_cluster_keys[choice_index]
         else:
-            c_n = max(phi.keys()) + 1
-            phi[c_n] = list(self.niw.sample())
+            # Make a new cluster
+            c_n = max(existing_cluster_keys) + 1 if existing_cluster_keys else 1
+            # Draw parameters for the new cluster from the base distribution
+            new_phi = self.niw.sample()
+            phi[c_n] = list(new_phi)
+            
         # SOLUTION_END
         return c_n
     
@@ -1855,7 +1875,7 @@ class GibbsSampler2(GibbsSampler):
     
     def sample_params(self, Y, c, phi):        
         N = Y.shape[0]
-        # 1. sample c
+        # sample c
         for n in range(N):
             y_n = Y[n]
             c_not_n = c[1:]
@@ -1871,7 +1891,7 @@ class GibbsSampler2(GibbsSampler):
         
             c = np.roll(c, -1, axis=0)
         
-        # 2. sample phi_c
+        # sample phi_c
         C = phi.keys()
         for c_k in C:
             mean, cov = self.sample_phi(Y, c, c_k)
@@ -2016,6 +2036,7 @@ class GibbsSampler3(GibbsSampler):
         else:
             return max(c_not_n) + 1
         # SOLUTION_END
+        
     def sample_params(self, Y, c):  
         #   Implement
         # SOLUTION_START
