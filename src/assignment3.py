@@ -903,7 +903,6 @@ Image('./figures/2d_regression_slice_x2.png')
 # +
 from sklearn.gaussian_process.kernels import RBF, ExpSineSquared, ConstantKernel as C
 
-# Generate synthetic periodic data , a noisy sine wave
 np.random.seed(42)
 X_train = np.sort(np.random.uniform(0, 10, 40)).reshape(-1, 1)
 X_train = np.delete(X_train, np.where((X_train > 4) & (X_train < 7))[0]).reshape(-1, 1)
@@ -932,14 +931,14 @@ fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True, sharey=True)
 ax1.plot(X_test, y_true, label='True Function', linestyle='--')
 ax1.scatter(X_train, y_train, label='Training Data', zorder=3)
 ax1.plot(X_test, y_pred_rbf, label='RBF Mean')
-ax1.fill_between(X_test.ravel(), y_pred_rbf - 1.96 * std_rbf, y_pred_rbf + 1.96 * std_rbf, alpha=0.2)
+ax1.fill_between(X_test.ravel(), y_pred_rbf - 1.96 * std_rbf, y_pred_rbf + 1.96 * std_rbf, alpha=0.2, label='95% CI')
 ax1.set_title(f'RBF Kernel (Fails to extrapolate and connect the gap)')
 ax1.legend()
 
 ax2.plot(X_test, y_true, label='True Function', linestyle='--')
 ax2.scatter(X_train, y_train, label='Training Data', zorder=3)
 ax2.plot(X_test, y_pred_per, label='Periodic Mean')
-ax2.fill_between(X_test.ravel(), y_pred_per - 1.96 * std_per, y_pred_per + 1.96 * std_per, alpha=0.2)
+ax2.fill_between(X_test.ravel(), y_pred_per - 1.96 * std_per, y_pred_per + 1.96 * std_per, alpha=0.2, label='95% CI')
 ax2.set_title(f'Periodic Kernel (Successfully captures circular geometry)')
 ax2.set_xlabel('X (e.g., Time or Angle)')
 ax2.legend()
@@ -950,7 +949,7 @@ plt.show()
 
 # -
 
-# Discuss: TODO
+# Discuss: In this example, we use periodic data to test the RBF kernel. The dataset is a continuous, periodic function (a sine wave) with significant gaps in the training data. As can be seen in the first graph, the kernel fails to generalise the shape of the underlying data distribution where we see a large variance in the estimation of the mean. This is because it is a stationary kernel. When trying to predict for $X>10$, the test points are too far from the training points relative to the length scale. At that stage the prediction will revert back to the mean assumption and hence we see the mean converge to 0. The periodic kernel where the exponential sinus squared kernel is used, captures the underlying data well. It works well as it maps the 1D space into a circular 2D unit circle based on the period $p$. By including this, we are able to encode cycles where points separated by a period are considered to have a distance of zero. This allows the data points used in previous cycles to be used in following cycles as if they were local to one another in space. 
 
 # # 2. Dirichlet Processes for Infinite GMMs
 # <!-- 
