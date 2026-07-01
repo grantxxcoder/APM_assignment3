@@ -8,7 +8,7 @@
 #       format_version: '1.5'
 #       jupytext_version: 1.17.1
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: .venv (3.12.2.final.0)
 #     language: python
 #     name: python3
 # ---
@@ -39,14 +39,14 @@ from functools import reduce
 
 from utils import confidence_ellipse
 # -
-
-
-
 # # Gaussian & Dirichlet Processes
 
 # <div class="alert alert-block alert-info">
 #     
-# **Student numbers:** 
+# **Student numbers:** <br>
+# 23248815 - Lehumo Motebu <br>
+# 25849646 - Grant Booysen <br>
+# 25853937 - Alex Bossert
 #     
 # </div>
 
@@ -144,7 +144,32 @@ plt.show()
 # where $\bar{\mathbf{w}}=\frac{1}{\sigma^2_n}\left(\frac{1}{\sigma^2_n}XX^T+\Sigma_p^{-1}\right)^{-1}X\mathbf{y}$, and $\mathbf{w}$ is a vector of weights of a linear regression model.
 #     
 # **Answer**
-#     
+# The posterior is given as 
+# $$
+# p(\mathbf{w}|X,\mathbf{y}) = \frac{p(\mathbf{y}|X,\mathbf{w})p(\mathbf{w})}{p(\mathbf{y}|X)}
+# $$
+# and since the normalising constant is not dependent on the weights we can write this proportionally as the likelihood multiplied by the prior:
+# $$
+# \begin{align}
+# p(\mathbf{w}|X,\mathbf{y}) &\propto p(\mathbf{y}|X,\mathbf{w})p(\mathbf{w}) \\
+# &\propto \frac{1}{(2\pi\sigma_n^2)^\frac{n}{2}}\exp \left({\frac{-1}{2\sigma_n^2}(\mathbf{y}-X^T\mathbf{w})^T (\mathbf{y}-X^T\mathbf{w})}\right) \exp \left(\frac{-1}{2}\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right) \\
+# &\propto \exp \left({\frac{-1}{2\sigma_n^2}(\mathbf{y}-X^T\mathbf{w})^T (\mathbf{y}-X^T\mathbf{w})}-\frac{1}{2}\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right) \\
+# &\propto \exp \left(\frac{-1}{2}\left(\frac{1}{\sigma_n^2}(\mathbf{y}-X^T\mathbf{w})^T (\mathbf{y}-X^T\mathbf{w})+\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right)\right) \\
+# &\propto \exp \left(\frac{-1}{2}\left(\frac{1}{\sigma_n^2}(\mathbf{y}^T\mathbf{y} - \mathbf{y}^T X^T\mathbf{w} - \mathbf{w}^T X\mathbf{y} + \mathbf{w}^T X X^T\mathbf{w})+\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right)\right) \\
+# &\propto \exp \left(\frac{-1}{2}\left(\frac{1}{\sigma_n^2}(\mathbf{y}^T\mathbf{y} - 2\mathbf{w}^T X\mathbf{y} + \mathbf{w}^T X X^T\mathbf{w})+\mathbf{w}^T\Sigma_p^{-1}\mathbf{w}\right)\right) \text{ (group $\mathbf{w}$ and $\mathbf{w}^T$)}\\
+# &\propto \exp \left(\frac{-1}{2}\left(\mathbf{w}^T \left(\frac{1}{\sigma_n^2}X X^T + \Sigma_p^{-1}\right) \mathbf{w} - \frac{2}{\sigma_n^2}\mathbf{w}^T X\mathbf{y} + \frac{1}{\sigma_n^2}\mathbf{y}^T\mathbf{y}\right)\right) \text{ (we drop constant)}\\
+# &\propto \exp \left(\frac{-1}{2}\left(\mathbf{w}^T \left(\frac{1}{\sigma_n^2}X X^T + \Sigma_p^{-1}\right) \mathbf{w} - \frac{2}{\sigma_n^2}\mathbf{w}^T X\mathbf{y} \right)\right) \\
+# \end{align}
+# $$
+# The next step requires letting $A = \frac{1}{\sigma_n^2}X X^T + \Sigma_p^{-1}$ and $\bar{\mathbf{w}} = \frac{1}{\sigma_n^2} A^{-1} X\mathbf{y}$:
+#
+# $$
+# \begin{align}
+# &\propto \exp \left(\frac{-1}{2}(\mathbf{w}^T A\mathbf{w}) - 2\mathbf{w}^T A \mathbf{\bar{w}} \right) \\
+# &\propto \exp\left(-\frac{1}{2}(\mathbf{w}-\bar{\mathbf{w}})^T A (\mathbf{w}-\bar{\mathbf{w}})\right) \\
+# &\propto \exp\left(-\frac{1}{2}(\mathbf{w}-\bar{\mathbf{w}})^T (\frac{1}{\sigma_n^2}X X^T + \Sigma_p^{-1}) (\mathbf{w}-\bar{\mathbf{w}})\right)
+# \end{align}
+# $$
 # </div>
 
 # <div class="alert alert-block alert-info">
@@ -152,7 +177,7 @@ plt.show()
 # **Exercise 1.2** Motivate the results in (2.9) of \[[1](#References)\] in terms of the results about the mean, covariance matrix, and distribution of linear functions of (Gaussian) variables.
 #     
 # **Answer**
-#     
+# TODO
 # </div>
 
 # ## 1.1. The Covariance Function
@@ -232,6 +257,20 @@ def plot_sine_kernel(periodicity=1.5, length_scale=1.0):
 
 def plot_GP_prior(X, kernel, num_samples):
     # TODO: Implement
+    # SOLUTION_START
+    samples = np.random.multivariate_normal(mean=np.zeros(X.shape[0]), cov=kernel(X), size=num_samples)
+    confidence_interval = 1.96 * np.sqrt(np.diag(kernel(X)))
+    plt.figure(figsize=(8, 4))
+    for i in range(num_samples):
+        plt.plot(X, samples[i], lw=1, linestyle='--', label=f'Sample {i+1}')
+    plt.fill_between(X.flatten(), -confidence_interval, confidence_interval, color='gray', alpha=0.2, label="95% CI")
+    plt.axhline(0, color='black', lw=1,label='Mean' )
+    plt.title("GP Prior")
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.legend()
+    plt.show()
+    #SOLUTION_END
 
 
 # +
@@ -276,8 +315,7 @@ print(model.kernel_.get_params())
 #     
 #    </div>
 
-def plot_GP_posterior(X, y, X_new, y_pred_mean, y_pred_std, samples 
-                     ):
+def plot_GP_posterior(X, y, X_new, y_pred_mean, y_pred_std, samples):
     '''Plot samples from the posterior predictive distribution for new
     input data points.
     
@@ -297,6 +335,26 @@ def plot_GP_posterior(X, y, X_new, y_pred_mean, y_pred_std, samples
         New function samples from the posterior predictive distribution.
     '''
     # TODO: Implement
+    # SOLUTION_START
+    plt.figure(figsize=(8, 4))
+    plt.plot(X.flatten(), y.flatten(), 'ro', label='Observed')
+    plt.plot(X_new.flatten(), y_pred_mean, 'k-', label='Mean')
+    plt.fill_between(
+        X_new.flatten(),
+        y_pred_mean - 1.96 * y_pred_std,
+        y_pred_mean + 1.96 * y_pred_std,
+        color='gray', alpha=0.2, label='95% CI'
+    )
+    
+    for i in range(samples.shape[1]):
+        plt.plot(X_new.flatten(), samples[:, i], lw=1, linestyle='--', label=f'Sample {i+1}')
+    
+    plt.title("GP Posterior")
+    plt.xlabel("x")
+    plt.ylabel("f(x)")
+    plt.legend()
+    plt.show()
+    #SOLUTION_END
 
 
 # +
@@ -305,6 +363,10 @@ def plot_GP_posterior(X, y, X_new, y_pred_mean, y_pred_std, samples
 X_new = np.linspace(-0.2,1.2).reshape(-1,1)
 
 # TODO: Predict and sample functions from sklearn's GP library, and plot results
+y_pred_mean, y_pred_std = model.predict(X_new, return_std=True)
+samples = model.sample_y(X_new, n_samples=3)
+print(y_pred_mean.shape, y_pred_std.shape, samples.shape)
+plot_GP_posterior(X1, y1, X_new, y_pred_mean, y_pred_std, samples)
 # -
 
 Image('./figures/gp_posterior_plot_sklearn.png')
@@ -334,7 +396,9 @@ Image('./figures/gp_posterior_plot_sklearn.png')
 #
 #     
 # **Answer**
-#     
+# <br>We map all the values from the posterior $\mathbf{f_*}$ to A.6 in \[[1](#References)\], ie match it to this equation:  $N(\mu_x, A), and x|y \sim N(\mu_x + CB^{−1}(y − \mu_y ),   A − CB^{−1}C^T)$
+#
+# For example let $\mu_x = \mathbf{0}$ and $(\mathbf{y} - \mu_y) = \mathbf{f}$ and then let C = K(X) .... etc TODO
 # </div>
 
 # **Matrix Inversion Instability** Matrix inversion is known to be numerically unstable. To address this issue, we will instead use Cholesky factorization (see appendix A.4 of \[[1](#References)\]) to try and achieve numerically stable computation of the new covariance matrix. 
@@ -350,11 +414,54 @@ Image('./figures/gp_posterior_plot_sklearn.png')
 # **Exercise 1.3.2** Explain how the computations of Algorithm 2.1 \[[1](#References)\] yield the values in (2.25), (2.26) and (2.30).
 #     
 # **Answer**
-#     
+# <br>We look at the first part of the algorithm for the cholesky decomposition in which we obtain $L = cholesky(K+\sigma_{n}^2I)$. We do the decomposition to prevent needing to do the inverse calculation for $K+\sigma_{n}^2I$. However we know that because $K+\sigma_{n}^2I$ is symmetric and positive definite we have $K + \sigma_n^2 I = L L^T$. The backslash operator is used ot refer to solving a system of linear equations ie $A \backslash b$ denotes solving the linear system $Ax = b$ for $x$. Therefore to calculate $\mathbf{\alpha}=L^T\backslash(L\backslash\mathbf{y})$, we can do:
+# $$
+# \begin{align}
+# \mathbf{\alpha}&=L^T\backslash(L\backslash\mathbf{y}) \\
+# &= L^T\backslash(L^{-1}\mathbf{y}) \\
+# &=L^{-T}(L^{-1}\mathbf{y}) \\
+# &=L^{-T}L^{-1}\mathbf{y} \\
+# &=(LL^{T})^{-1}\mathbf{y} \\
+# &=(K + \sigma_n^2 )^{-1}\mathbf{y} \\
+# \end{align}
+# $$
+# Finally to get equation (2.25) we substitute in $\bar{f}_* = k_*^T \mathbf{\alpha}$ to get $\bar{f}_* = k_*^T (K + \sigma_n^2 I)^{-1} \mathbf{y}$
+#
+# By similar reasoning for equation (2.26) we let $\mathbf{v} = L \backslash\mathbf{k_*}$ from the algorithm such that:
+# $$
+# \begin{align}
+# \mathbb{V}[f_*] &= k(\mathbf{x_*}, \mathbf{x_*}) - \mathbf{v}^T\mathbf{v} \\
+# &= k(\mathbf{x_*}, \mathbf{x_*}) - (L \backslash\mathbf{k_*})^T(L \backslash\mathbf{k_*}) \\
+# &= k(\mathbf{x_*}, \mathbf{x_*}) - (L^{-1} \mathbf{k_*})^T(L^{-1}\mathbf{k_*}) \\
+# &= k(\mathbf{x_*}, \mathbf{x_*}) - \mathbf{k_*}^T L^{-T}L^{-1}\mathbf{k_*} \\
+# &= k(\mathbf{x_*}, \mathbf{x_*}) - \mathbf{k_*}^T (K + \sigma_n^2 )^{-1}\mathbf{k_*} \\
+# \end{align}
+# $$
+#
+# Finally for equation (2.30) we solve for $\log p(\mathbf{y}|X)$:
+# $$
+# \begin{align}
+# \log p(\mathbf{y}|X) &= -\frac{1}{2}\mathbf{y}^T\mathbf{\alpha} - \sum_i \log L_{ii} - \frac{n}{2}\log 2\pi \\
+# &= -\frac{1}{2}\mathbf{y}^T(K + \sigma_n^2 )^{-1}\mathbf{y} - \sum_i \log L_{ii} - \frac{n}{2}\log 2\pi
+# \end{align}
+# $$
+# From here focusing on the second term we note that we can:
+# $$
+# \begin{align}
+# |K + \sigma_n^2 I| &= |LL^T| =|LL^T| = |L||L^T| = |L|^2\\
+# |L| &= \prod_i L_{ii}
+# \end{align}
+# $$
+# Since we are taking a log the product turns into a sum and we can directly substitute back in:
+# $$
+# \begin{align}
+# \log p(\mathbf{y}|X) &= -\frac{1}{2}\mathbf{y}^T(K + \sigma_n^2 )^{-1}\mathbf{y} - \log(|K + \sigma_n^2 I|^\frac{1}{2}) - \frac{n}{2}\log 2\pi \\
+# &= -\frac{1}{2}\mathbf{y}^T(K + \sigma_n^2 )^{-1}\mathbf{y} - \frac{1}{2}\log|K + \sigma_n^2 I| - \frac{n}{2}\log 2\pi \\
+# \end{align}
+# $$
 # </div>
 
-def predict(kernel, X_star, X, y
-           ):
+def predict(kernel, X_star, X, y, sigma_eps=0):
     '''Compute the mean and covariance matrix of the posterior
     predictive distribution given X, X* and y.
     
@@ -377,6 +484,20 @@ def predict(kernel, X_star, X, y
         values given X, y and X_star.
     '''
     # TODO: Implement
+    #SOLUTION_START
+    K = kernel(X, X)
+    K_star = kernel(X, X_star)    
+    K_star_star = kernel(X_star, X_star)
+    
+    L = np.linalg.cholesky(K + (sigma_eps ** 2) * np.eye(K.shape[0]))
+    v_mean = np.linalg.solve(L, y)
+    alpha = np.linalg.solve(L.T, v_mean)
+    y_pred_mean = K_star.T @ alpha
+    V_cov = np.linalg.solve(L, K_star)
+    y_pred_cov = K_star_star - (V_cov.T @ V_cov)
+    
+    return y_pred_mean, y_pred_cov  
+    #SOLUTION_END
 
 
 # <div class="alert alert-block alert-info"> 
@@ -387,7 +508,28 @@ def predict(kernel, X_star, X, y
 
 # +
 # TODO: Reproduce GP posterior plot
+# SOLUTION_START
+y_pred_mean, y_pred_cov = predict(kernel1, X_new, X1.reshape(-1,1), y1)
+y_pred_std = np.sqrt(np.diag(y_pred_cov))
 
+plt.figure(figsize=(8, 4))
+plt.plot(X1.flatten(), y1.flatten(), 'ro', label='Observed')    
+plt.plot(X_new, y_pred_mean, 'k-', label='Mean')
+plt.fill_between(
+    X_new.flatten(),
+    y_pred_mean - 1.96 * y_pred_std,
+    y_pred_mean + 1.96 * y_pred_std,
+    color='gray', alpha=0.2, label='95% CI'
+)
+for i in range(3):
+    sample = np.random.multivariate_normal(mean=y_pred_mean.flatten(), cov=y_pred_cov)
+    plt.plot(X_new.flatten(), sample, lw=1, linestyle='--', label=f'Sample {i+1}')
+plt.title("GP Posterior")
+plt.xlabel("x")
+plt.ylabel("f(x)")
+plt.legend()
+plt.show()
+# SOLUTION_END
 # -
 
 Image('./figures/gp_posterior_plot_self.png')
@@ -428,6 +570,8 @@ y1_noise = -np.cos(np.pi*X1_noise) + np.sin(4*np.pi*X1_noise) + np.random.normal
 
 plt.scatter(X1_noise, y1_noise)
 plt.show()
+
+
 # -
 
 # <div class="alert alert-block alert-info">
@@ -436,26 +580,69 @@ plt.show()
 #     
 # </div>
 
-X_star = np.linspace(0.05,0.95).reshape(-1,1)
-
 # +
-# TODO: Fit using noise-free approach
+# SOLUTION_START ADDITIONAL CODE
+def plot(X1, y1, X_new, y_pred_mean, y_pred_std, y_pred_cov):
+    plt.figure(figsize=(8, 4))
+    plt.plot(X1.flatten(), y1.flatten(), 'ro', label='Observed')    
+    plt.plot(X_new, y_pred_mean, 'k-', label='Mean')
+    plt.fill_between(
+        X_new.flatten(),
+        y_pred_mean - 1.96 * y_pred_std,
+        y_pred_mean + 1.96 * y_pred_std,
+        color='gray', alpha=0.2, label='95% CI'
+    )
+    for i in range(3):
+        sample = np.random.multivariate_normal(mean=y_pred_mean.flatten(), cov=y_pred_cov)
+        plt.plot(X_new.flatten(), sample, lw=1, linestyle='--', label=f'Sample {i+1}')
+    plt.title("GP Posterior")
+    plt.xlabel("x")
+    plt.ylabel("f(x)")
+    plt.legend()
+    plt.show()
+    
+# SOLUTION_END ADDITIONAL CODE
 
-
-# +
-# TODO: Fit using correct noise level
-
-
-# +
-# TODO: Fit using higher level of noise than is actually present
 
 # -
+
+X_star = np.linspace(0.05,0.95).reshape(-1,1)
+
+# TODO: Fit using noise-free approach
+# SOLUTION_START
+y_pred_mean, y_pred_cov = predict(kernel, X_star, X1.reshape(-1,1), y1, sigma_eps=0)
+plot(X1.reshape(-1,1), y1, X_star, y_pred_mean, np.sqrt(np.diag(y_pred_cov)), y_pred_cov)
+# SOLUTION_END
+
+
+# TODO: Fit using correct noise level
+# SOLUTION_START
+y_pred_mean_noise, y_pred_cov_noise = predict(kernel, X_star, X1_noise.reshape(-1,1), y1_noise, sigma_eps=0.1)
+plot(X1_noise.reshape(-1,1), y1_noise, X_star, y_pred_mean_noise, np.sqrt(np.diag(y_pred_cov_noise)), y_pred_cov_noise)
+# SOLUTION_END
+
+
+# TODO: Fit using higher level of noise than is actually present
+# SOLUTION_START
+y_pred_mean_noise_high, y_pred_cov_noise_high = predict(kernel, X_star, X1_noise.reshape(-1,1), y1_noise, sigma_eps=0.5)
+plot(X1_noise, y1_noise, X_star, y_pred_mean_noise_high, np.sqrt(np.diag(y_pred_cov_noise_high)), y_pred_cov_noise_high)
+# SOLUTION_END
 
 # <div class="alert alert-block alert-info">
 #
 # **Discussion**
 #
-#     
+# - **Noise-free assumption ($\sigma_\epsilon = 0$):**  
+#   When the model assumes there is no noise, it tries to fit every data point exactly. The fitted curves follow small fluctuations due to the data containing random noise which results in overfitting.
+#
+# - **Correct noise assumption ($\sigma_\epsilon = 0.1$):**  
+#   Using the correct noise level produces a smoother curve that follows the overall trend of the data instead of the random variations. This creates fitted curves which appear to be good fits to the data.
+#
+# - **Higher noise assumption ($\sigma_\epsilon = 0.5$):**  
+#   Assuming a larger noise level makes the model fit the data more loosely. The curve becomes smoother but can may miss important features of the true function resulting in underfitting.
+#
+# The correct noise assumption provides the best balance between fitting the data and avoiding overfitting. Assuming too little noise causes the model to fit random errors, while assuming too much noise causes it to ignore useful information in the data.
+#
 # </div>
 
 # ## 1.4. Tuning the Hyperparameters
@@ -513,8 +700,17 @@ plt.show()
 #     
 # </div>
 
+# SOLUTION_START
 def marginal_likelihood(X, y, kernel, sigma_eps=0):
     # TODO: Implement
+    K = kernel(X, X)
+    L = np.linalg.cholesky(K + (sigma_eps ** 2) * np.eye(K.shape[0]))
+    term1 = -0.5 * y.T @ np.linalg.solve(L.T, np.linalg.solve(L, y))
+    term2 = -np.sum(np.log(np.diagonal(L)))
+    term3 = -0.5 * X.shape[0] * np.log(2 * np.pi)
+    log_marginal_likelihood = term1 + term2 + term3
+    return log_marginal_likelihood
+# SOLUTION_END
 
 
 # +
@@ -523,14 +719,41 @@ def marginal_likelihood(X, y, kernel, sigma_eps=0):
 # numpy functions: meshgrid, argmax, unravel_index . Potentially
 # useful matplotlib function: matplotlib.pyplot.pcolormesh ,
 # matplotlib.pyplot.colorbar .
+l_grid = np.linspace(0.05, 0.16, 100)
+s_grid = np.linspace(0.5, 2, 100)
+L_grid, S_grid = np.meshgrid(l_grid, s_grid)
+results = np.zeros(S_grid.shape)
 
+for i in trange(S_grid.shape[0]):
+    for j in range(S_grid.shape[1]):
+        l = L_grid[i,j]
+        s = S_grid[i,j]
+        k = gp.kernels.ConstantKernel(s**2, constant_value_bounds='fixed')*\
+            gp.kernels.RBF(l, length_scale_bounds='fixed')
+        results[i,j] = marginal_likelihood(X1.reshape(-1,1), y1, k, sigma_eps=0)
+
+plt.figure(figsize=(8, 6))
+plt.pcolormesh(S_grid, L_grid, results, shading='auto')
+plt.colorbar()
+plt.ylabel('l')
+plt.xlabel(f'$\sigma$') 
+
+max_idx = np.unravel_index(np.argmax(results), results.shape)
+optimal_l = L_grid[max_idx]
+optimal_s = S_grid[max_idx]
+plt.scatter(optimal_s, optimal_l, color='red', label='Max log p(y)', marker='x')
+
+plt.legend()
+plt.show()
 # -
 
 Image('./figures/grid_search.png')
 
 # Fit using tuned hyperparameters
-# sigma = # TODO: provide tuned hyperparameter value
-# length_scale = # TODO: provide tuned hyperparameter value
+# SOLUTION_START
+sigma = optimal_s# TODO: provide tuned hyperparameter value
+length_scale = optimal_l# TODO: provide tuned hyperparameter value
+# SOLUTION_END
 fig, ax = plt.subplots()
 x = np.linspace(-0.2,1.2).reshape(-1,1)
 kernel = gp.kernels.ConstantKernel(sigma**2, constant_value_bounds='fixed')*\
@@ -565,6 +788,36 @@ plt.show()
 
 # +
 # TODO: Tune hyperparameters over l in [2,4] and sigma in [1,2]
+# SOLUTION_START
+l_grid = np.linspace(2, 4, 100)
+s_grid = np.linspace(1, 2, 100)
+L_grid, S_grid = np.meshgrid(l_grid, s_grid)
+results = np.zeros(S_grid.shape)
+
+print(X2.shape, y2.shape)
+for i in trange(S_grid.shape[0]):
+    for j in range(S_grid.shape[1]):
+        l = L_grid[i,j]
+        s = S_grid[i,j]
+        k = gp.kernels.ConstantKernel(s**2, constant_value_bounds='fixed')*\
+            gp.kernels.RBF(l, length_scale_bounds='fixed')
+        results[i,j] = marginal_likelihood(X2, y2, k, sigma_eps=0.1) # we know how much noise is present in the data, so we can use this value for sigma_eps
+
+plt.figure(figsize=(8, 6))
+plt.pcolormesh(S_grid, L_grid, results, shading='auto')
+plt.colorbar()
+plt.ylabel('l')
+plt.xlabel(f'$\sigma$') 
+
+max_idx = np.unravel_index(np.argmax(results), results.shape)
+optimal_l = L_grid[max_idx]
+optimal_s = S_grid[max_idx]
+plt.scatter(optimal_s, optimal_l, color='red', label='Max log p(y)', marker='x')
+
+plt.legend()
+plt.show()
+print(f'Optimal l: {optimal_l}, Optimal sigma: {optimal_s}')
+# SOLUTION_END
 
 
 # +
@@ -577,6 +830,28 @@ y_true = (y_true - np.mean(y_true))/np.std(y_true)
 # TODO: Apply GP model to 2D data set, and generate a plot like the one below.
 # (The z label was troublesome for me to render due to matplotlib issues, don't
 # worry if yours doesn't show up.)
+# SOLUTION_START
+model = gp.GaussianProcessRegressor(
+        kernel=gp.kernels.ConstantKernel(optimal_s**2, constant_value_bounds='fixed') *
+               gp.kernels.RBF(optimal_l, length_scale_bounds='fixed'),
+        alpha=0.1**2,      
+        normalize_y=False  
+)
+model.fit(X2, y2)
+y_pred_mean, y_pred_std = model.predict(X_star, return_std=True)
+
+
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection='3d')
+Z_pred = y_pred_mean.reshape(x1.shape)
+surf = ax.plot_surface(x1, x2, Z_pred, cmap='coolwarm', alpha=0.7, edgecolor='none')
+ax.scatter(X2[:, 0], X2[:, 1], y2.flatten(), c='tab:blue', marker='o', s=30, label='Observed Points')
+ax.set_xlabel(r'$x_1$')
+ax.set_ylabel(r'$x_2$')
+ax.set_zlabel(r'$y$')
+ax.view_init(elev=30, azim=-60)
+plt.show()
+# SOLUTION_END
 # -
 
 Image('./figures/2d_regression_fit.png')
@@ -593,7 +868,31 @@ Image('./figures/2d_regression_fit.png')
 @interact(x2_col=(0,x2.shape[0]-1))
 def slice_x1(x2_col):   
     # TODO: Implement
+    # SOLUTION_START
+    x_val = x2[:, x2_col]
+    x1_fixed = x1[0, x2_col]
+    mu_slice = y_pred_mean.reshape(x1.shape)[:, x2_col]
+    std_slice = y_pred_std.reshape(x1.shape)[:, x2_col]
+    true_slice = y_true[:, x2_col]
+    
+    plt.figure(figsize=(6, 5))
+    plt.ylim(-1, 4)
+    plt.plot(x_val, mu_slice, color='gray', label='GP mean')
+    plt.plot(x_val, true_slice, color='red', label='True')
+    plt.fill_between(x_val, 
+                     mu_slice - 1.96 * std_slice, 
+                     mu_slice + 1.96 * std_slice, 
+                     color='lightgray', alpha=0.3, label='95% CI')
+    
+    plt.title(f'$x_1 = {x1_fixed:.1f}$')
+    plt.xlabel('$x_2$')
+    plt.ylabel('$y$')
+    plt.legend(loc='upper right')
+    plt.show()
+    # SOLUTION_END
 
+
+slice_x1(24)
 
 Image('./figures/2d_regression_slice_x1.png')
 
@@ -601,10 +900,33 @@ Image('./figures/2d_regression_slice_x1.png')
 @interact(x1_row=(0,x1.shape[0]-1))
 def slice_x2(x1_row):   
     # TODO: Implement
+    # SOLUTION_START
+    x_val = x1[x1_row, :]
+    x2_fixed = x2[x1_row, 0]
+    mu_slice = y_pred_mean.reshape(x1.shape)[x1_row, :]
+    std_slice = y_pred_std.reshape(x1.shape)[x1_row, :]
+    true_slice = y_true[x1_row, :]
 
+    plt.figure(figsize=(7, 5))
+    plt.ylim(-1.04, 4)
+    plt.plot(x_val, mu_slice, color='gray', label='GP mean')
+    plt.plot(x_val, true_slice, color='red', label='True')
+    plt.fill_between(x_val, 
+                     mu_slice - 1.96 * std_slice, 
+                     mu_slice + 1.96 * std_slice, 
+                     color='lightgray', alpha=0.3, label='95% CI')
+    
+    plt.title(f'$x_2 = {x2_fixed:.1f}$')
+    plt.xlabel('$x_1$')
+    plt.ylabel('$y$')
+    plt.legend(loc='upper right')
+    plt.show()
+    # SOLUTION_END
+
+
+slice_x2(38)
 
 Image('./figures/2d_regression_slice_x2.png')
-
 
 # ## 1.6 Designing a Covariance Function
 
@@ -613,6 +935,58 @@ Image('./figures/2d_regression_slice_x2.png')
 # Look into alternative data sets where the kernel functions above are not appropriate for GP regression. Discuss a more suitable kernel function, illustrate how it works and what aspects of the data it improves modelling on. Constrast the results when using the above kernel with this alternative kernel. A helpful resource on choosing or designing new kernel functions can be found [here](https://www.cs.toronto.edu/~duvenaud/cookbook/).
 #     
 # </div>
+
+# +
+from sklearn.gaussian_process.kernels import RBF, ExpSineSquared, ConstantKernel as C
+
+np.random.seed(42)
+X_train = np.sort(np.random.uniform(0, 10, 40)).reshape(-1, 1)
+X_train = np.delete(X_train, np.where((X_train > 4) & (X_train < 7))[0]).reshape(-1, 1)
+y_train = np.sin(X_train).ravel() + np.random.normal(0, 0.1, X_train.shape[0])
+X_test = np.linspace(0, 15, 200).reshape(-1, 1)
+y_true = np.sin(X_test).ravel()
+
+# RBF Kernel
+kernel_rbf = C(1.0, (1e-3, 1e3)) * RBF(1.0, (1e-2, 1e2))
+
+# Periodic Kernel 
+kernel_periodic = C(1.0, (1e-3, 1e3)) * ExpSineSquared(length_scale=1.0, periodicity=2*np.pi,
+                                                       length_scale_bounds=(1e-2, 1e2),
+                                                       periodicity_bounds=(1e-1, 10))
+
+gp_rbf = gp.GaussianProcessRegressor(kernel=kernel_rbf, alpha=0.1**2, n_restarts_optimizer=10)
+gp_rbf.fit(X_train, y_train)
+
+gp_periodic = gp.GaussianProcessRegressor(kernel=kernel_periodic, alpha=0.1**2, n_restarts_optimizer=10)
+gp_periodic.fit(X_train, y_train)
+
+y_pred_rbf, std_rbf = gp_rbf.predict(X_test, return_std=True)
+y_pred_per, std_per = gp_periodic.predict(X_test, return_std=True)
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True, sharey=True)
+
+ax1.plot(X_test, y_true, label='True Function', linestyle='--')
+ax1.scatter(X_train, y_train, label='Training Data', zorder=3)
+ax1.plot(X_test, y_pred_rbf, label='RBF Mean')
+ax1.fill_between(X_test.ravel(), y_pred_rbf - 1.96 * std_rbf, y_pred_rbf + 1.96 * std_rbf, alpha=0.2, label='95% CI')
+ax1.set_title(f'RBF Kernel (Fails to extrapolate and connect the gap)')
+ax1.legend()
+
+ax2.plot(X_test, y_true, label='True Function', linestyle='--')
+ax2.scatter(X_train, y_train, label='Training Data', zorder=3)
+ax2.plot(X_test, y_pred_per, label='Periodic Mean')
+ax2.fill_between(X_test.ravel(), y_pred_per - 1.96 * std_per, y_pred_per + 1.96 * std_per, alpha=0.2, label='95% CI')
+ax2.set_title(f'Periodic Kernel (Successfully captures circular geometry)')
+ax2.set_xlabel('X (e.g., Time or Angle)')
+ax2.legend()
+
+plt.tight_layout()
+plt.show()
+
+
+# -
+
+# **Discussion**: 
+# <br>In this example, we use periodic data to test the RBF kernel. The dataset is a continuous, periodic function (a sine wave) with significant gaps in the training data. As can be seen in the first graph, the kernel fails to generalise the shape of the underlying data distribution where we see a large variance in the estimation of the mean. This is because it is a stationary kernel. When trying to predict for $X>10$, the test points are too far from the training points relative to the length scale. At that stage the prediction will revert back to the mean assumption and hence we see the mean converge to 0. The periodic kernel where the exponential sinus squared kernel is used, captures the underlying data well. It works well as it maps the 1D space into a circular 2D unit circle based on the period $p$. By including this, we are able to encode cycles where points separated by a period are considered to have a distance of zero. This allows the data points used in previous cycles to be used in following cycles as if they were local to one another in space. 
 
 # # 2. Dirichlet Processes for Infinite GMMs
 # <!-- 
@@ -642,6 +1016,24 @@ Image('./figures/2d_regression_slice_x2.png')
 # **Question 2.1** Explain how the exchangeability assumption is related to the i.i.d. assumption, and how de Finetti's theorem allows us to move between them.
 #
 # **Answer**
+# <br>The exchangeable property states that a sequence of random variables is exchangeable if their joint distributions are invariant to ordering. Ie:
+# $$p(Y_1, \ldots, Y_N) = p(Y_{\pi(1)}, \ldots, Y_{\pi(N)})$$
+# where $\pi$ is a permutation of the indices $\{1, \dots, N\}$. 
+#
+# The iid property of random variables has the following property:
+# $$p(Y_1, \dots, Y_N) =  \prod_{n=1}^N p(Y_n)$$
+#
+# Therefore, we can see that the iid property is a stronger assumption than exchangeability. The iid assumption implies exchangeability as we can take any permutation of the random variables due to their independence and thus reform the joint distribution. However, exchangeability does not imply iid as the invariance to order does not have any assumption over independence between random variables.
+#
+# The de Finnetti theorem states that an infinitely exchangeable sequence of random variables can have its joint distribution be represented as a mixture of conditionally independent and identically distributed distributions. Therefore over any distribution G for any N variables we have:
+# $$p(Y_1, \dots, Y_N) = \int \prod_{n=1}^N p(Y_n|G) \, dP(G)$$
+# This makes sense as if we find a distribution G to condition on with the conditional independence asssumption we can do the following: 
+# $$\begin{aligned}
+# p(Y_{\pi(1)}, \dots, Y_{\pi(N)}) &= \int p(Y_{\pi(1)}, \dots, Y_{\pi(N)}|G) \, dP(G) \quad \text{(Law of Total Probability)} \\
+# &= \int \prod_{n=1}^N p(Y_{\pi(n)}|G) \, dP(G) \quad \text{(by conditional independence given  G)} \\
+# &= \int \prod_{n=1}^N p(Y_n|G) \, dP(G) \quad \text{(since the order of scalar multiplication is commutative)} \\
+# &= p(Y_1, \dots, Y_N)
+# \end{aligned}$$
 #
 # </div>
 
@@ -699,7 +1091,27 @@ Image('./figures/2d_regression_slice_x2.png')
 # **Question 2.2** Give the formulae for the posterior parameters of the NIW in terms of the parameters of the prior, the data points $\mathbf{y}_i$, and the sample mean $\bar{\mathbf{y}}$. Also give a description of the interpretation of each NIW parameter. 
 #
 # **Answer**
+# Given $N$ independent observations $\mathbf{y}_i$ of dimension $D$, with sample mean $\bar{\mathbf{y}} = \frac{1}{N} \sum_{i=1}^N \mathbf{y}_i$, the posterior parameters for $\text{NIW}(\mu_N, \lambda_N, \nu_N, S_N)$ are computed as follows:
+# $$\begin{aligned}
+# \lambda_N &= \lambda_0 + N \\
+# \mu_N &= \frac{\lambda_0 \mu_0 + N \bar{\mathbf{y}}}{\lambda_0 + N} \\
+# \nu_N &= \nu_0 + N \\
+# S_N &= S_0 + \sum_{i=1}^N (\mathbf{y}_i - \bar{\mathbf{y}})(\mathbf{y}_i - \bar{\mathbf{y}})^T + \frac{\lambda_0 N}{\lambda_0 + N} (\bar{\mathbf{y}} - \mu_0)(\bar{\mathbf{y}} - \mu_0)^T
+# \end{aligned}$$
 #
+# **Interpretation of NIW Parameters**
+#
+# - **$\mu_0$ (Prior Mean):**  
+#   The prior estimate of the mean of the data. It represents where the data is expected to be centred before any observations are made. The posterior mean is a weighted average of this prior mean and the sample mean.
+#
+# - **$\lambda_0$ (Mean Concentration):**  
+#   Controls how strongly the prior mean is trusted. Larger values place more weight on the prior mean, while smaller values allow the observed data to have a greater influence on the posterior mean.
+#
+# - **$\nu_0$ (Degrees of Freedom):**  
+#   Controls the confidence in the prior covariance estimate. Larger values indicate a stronger belief in the prior covariance, while smaller values allow the covariance to be influenced more by the observed data.
+#
+# - **$S_0$ (Scale Matrix):**  
+#   Encodes the prior belief about the spread and correlation of the data. Larger values correspond to a prior belief in greater variability, and together with $\nu_0$, it determines the prior covariance distribution.
 #     
 # </div>
 
@@ -733,6 +1145,14 @@ class NIW:
         given the observed N x D data matrix Y.
         '''
         # TODO: Implement
+        N = Y.shape[0]
+        y_bar = np.mean(Y, axis=0)
+
+        lambda_n = self.lambda0 + N
+        mu_n = (self.lambda0 * self.mu0 + N * y_bar) / lambda_n
+        nu_n = self.nu0 + N
+        S_n = self.S0 + (Y - y_bar).T @ (Y - y_bar) + (self.lambda0 * N) / lambda_n * np.outer(y_bar - self.mu0, y_bar - self.mu0)
+
         return mu_n, lambda_n, nu_n, S_n
 
 
@@ -763,7 +1183,52 @@ class NIW:
 # $$
 #
 # **Answer**
+# Considering the prior:
+# $$
+# \begin{aligned}
+# \mathbf{p} &\sim \text{Dir}\left(\frac{\alpha}{K},\ldots,\frac{\alpha}{K}\right) \\
+# p(\mathbf{p}) &= \frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \prod_{j=1}^K p_j^{\frac{\alpha}{K} - 1}
+# \end{aligned}
+# $$
+# Then considering the cluster assignments:
+# $$
+# \begin{aligned}
+# c_n|\mathbf{p} &\sim \text{Discrete}(p_1,\ldots,p_K) \\
+# \end{aligned}
+# $$
+# Therefore since each cluster is assumed to be i.i.d we can say that all the cluster assignments from timestep 1 to $n-1$ is:
+# $$p(\mathbf{c}_{1:n-1}|\mathbf{p}) = \prod_{j=1}^K p_j^{m_{n,j}}$$
+# where $m_{n,j}$ denotes the number of times class $j$ appears up until observation $n-1$.
 #
+# Therefore the denominatior is calculated as:
+# $$
+# \begin{aligned}
+# \int p(\mathbf{c}_{1:n-1}|\mathbf{p})p(\mathbf{p})\:d\mathbf{p} &= \int \prod_{j=1}^K p_j^{m_{n,j}} \frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \prod_{j=1}^K p_j^{\frac{\alpha}{K} - 1} \:d\mathbf{p}\\
+# &= \frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \int \prod_{j=1}^K p_j^{m_{n,j}} p_j^{\frac{\alpha}{K} - 1} \:d\mathbf{p} \\
+# &= \frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \int \underbrace{\prod_{j=1}^K p_j^{m_{n,j}+\frac{\alpha}{K} - 1}}_{\text{Unnormalised Dirichlet}} \:d\mathbf{p} \\
+# &= \frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \frac{\prod_{j=1}^K \Gamma(m_{n,j} + \frac{\alpha}{K})}{\Gamma(\sum_{j=1}^K(m_{n,j} + \frac{\alpha}{K}))} \\
+# \end{aligned}
+# $$
+# We know that $\sum_{j=1}^Km_{n,j}$ is just counting all the previous observations and finally $\sum_{j=1}^K\frac{\alpha}{K} = \alpha$, therefore:
+# $$
+# \int p(\mathbf{c}_{1:n-1}|\mathbf{p})p(\mathbf{p})\:d\mathbf{p} = \frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \frac{\prod_{j=1}^K \Gamma(m_{n,j} + \frac{\alpha}{K})}{\Gamma(n -1 +\alpha)}
+# $$
+#
+# Now the numerator follows the same logic except we only have one additional cluster assignment to keep track of which is for observation $n$. Therefore the numerator just becomes:
+# $$
+# \int p(c_n=k, \mathbf{c}_{1:n-1}|\mathbf{p})p(\mathbf{p})\:d\mathbf{p} = \frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \frac{\Gamma(m_{n, k}+ 1+\frac{\alpha}{K}) \prod_{j=1, j\neq k}^K \Gamma(m_{n,j} + \frac{\alpha}{K})}{\Gamma(n + \alpha)}
+# $$
+#
+# Thus to simplify we can do the following:
+# $$
+# \begin{aligned}
+# \frac{\frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \frac{\Gamma(m_{n, k}+ 1+\frac{\alpha}{K}) \prod_{j=1, j\neq k}^K \Gamma(m_{n,j} + \frac{\alpha}{K})}{\Gamma(n + \alpha)}}{\frac{\Gamma(\alpha)}{\Gamma(\alpha/K)^K} \frac{\prod_{j=1}^K \Gamma(m_{n,j} + \frac{\alpha}{K})}{\Gamma(n -1 +\alpha)}} &= \frac{\Gamma(n -1 +\alpha)\Gamma(m_{n, k}+ 1+\frac{\alpha}{K}) \prod_{j=1, j\neq k}^K \Gamma(m_{n,j} + \frac{\alpha}{K})}{\Gamma(n + \alpha) \prod_{j=1}^K \Gamma(m_{n,j} + \frac{\alpha}{K})} \\
+#
+# &= \frac{\Gamma(n -1 +\alpha)\Gamma(m_{n, k}+ 1+\frac{\alpha}{K})}{\Gamma(n + \alpha)\Gamma(m_{n,k} + \frac{\alpha}{K})} \\
+# &= \frac{\Gamma(n -1 +\alpha) (m_{n, k}+ \frac{\alpha}{K}) \Gamma(m_{n, k}+ \frac{\alpha}{K})}{(n -1+ \alpha)\Gamma(n -1+ \alpha)\Gamma(m_{n,k} + \frac{\alpha}{K})} \\
+# &= \frac{m_{n, k}+ \frac{\alpha}{K}}{n -1+ \alpha} \\
+# \end{aligned}
+# $$
 # </div>
 
 # If we now let $K\rightarrow\infty$, these conditional probabilties reach the following limits:
@@ -780,8 +1245,37 @@ class NIW:
 # **Question 2.1.2** Explain how the second formula above, $p(c_n \neq c_j \:\: \forall \:\: j < n|\mathbf{c}_{1:n-1}) \rightarrow \frac{\alpha}{n-1+\alpha}$, is derived.
 #     
 # **Answer** 
-#     
-#
+# Since we have that 
+# $$
+# \begin{aligned}
+# p(c_n=k|\mathbf{c}_{1:n-1}) &=  \frac{m_{n,k} + \frac{\alpha}{K}}{n-1 + \alpha}
+# \end{aligned}
+# $$
+# However, if this is a new cluster ($k^*$) that has never been previously seen we know that $m_{n,k^*} = 0$.
+# $$
+# \begin{aligned}
+# p(c_n=k^*|\mathbf{c}_{1:n-1}) &=  \frac{\frac{\alpha}{K}}{n-1 + \alpha}
+# \end{aligned}
+# $$
+# There are multiple potential new clusters to choose from. Suppose we have the clusters ordered such that the first $K_{obs}$ clusters are the ones already occupied by the previous $n-1$ observations. Then, we can only choose a new cluster from the remaining unobserved clusters, which range from index $K_{obs}+1$ to $K$. Since the probability of choosing any one of these empty clusters is equally likely, and choosing one is mutually exclusive from choosing another, we use the probability union rule to sum their individual probabilities:
+# $$
+# P(c_n = K_{obs} + 1 \cup \dots \cup c_n= K) = \sum_{k^* = K_{obs}+1}^K \frac{\frac{\alpha}{K}}{n-1 + \alpha} \\
+# $$
+# Therefore we can finish with:
+# $$
+# \begin{align*}
+# p(c_n \neq c_j \:\: \forall \:\: j < n|\mathbf{c}_{1:n-1}) &= \sum_{k^* = K_{obs}+1}^K \frac{\frac{\alpha}{K}}{n-1 + \alpha} \\
+# &= (K - K_{obs}) \left( \frac{\frac{\alpha}{K}}{n-1 + \alpha} \right) \\
+# &= \left( \frac{K - K_{obs}}{K} \right) \frac{\alpha}{n-1 + \alpha} \\
+# &= \left( 1 - \frac{K_{obs}}{K} \right) \frac{\alpha}{n-1 + \alpha}
+# \end{align*}
+# $$
+# Finally, we take the limit as the total number of classes $K \to \infty$:
+# $$
+# \begin{equation*}
+# \lim_{K \to \infty} \left( 1 - \frac{K_{obs}}{K} \right) \frac{\alpha}{n-1 + \alpha} = (1 - 0) \frac{\alpha}{n-1 + \alpha} = \frac{\alpha}{n-1 + \alpha}
+# \end{equation*}
+# $$
 # </div>
 
 # Note that "since the $c_n$ are significant only in so far as they are or are not equal to other $c_j$, the above probabilities are all that are needed to define the model." \[[2](#References)\]
@@ -820,6 +1314,47 @@ def sample_inf_gmm(alpha, mu0, lambda0, nu0, S0, N):
         N x D matrix of sampled data points.
     '''
     # TODO: Implement
+    # SOLUTION_START
+    D = mu0.shape[0]
+    c = np.zeros(N, dtype=int)
+    Y = np.zeros((N, D))
+
+    # NIW prior
+    niw = NIW(mu0, lambda0, nu0, S0)
+
+    # Sample the first cluster parameters and first observation
+    cluster_params = [niw.sample()]
+    mu_k, Sigma_k = cluster_params[0]
+    Y[0] = np.random.multivariate_normal(mu_k, Sigma_k)
+    k = 1
+
+    # Sample remaining observations
+    for n in range(1, N):
+        # Probability of joining each existing cluster or creating a new one
+        cluster_probs = np.zeros(k + 1)
+
+        for j in range(k):
+            cluster_size = np.sum(c[:n] == j)
+            cluster_probs[j] = cluster_size / (n + alpha)
+
+        # Probability of creating a new cluster
+        cluster_probs[k] = alpha / (n + alpha)
+
+        # Sample cluster assignment
+        c[n] = np.random.choice(k + 1, p=cluster_probs)
+
+        # If a new cluster is created, sample its parameters
+        if c[n] == k:
+            mu_k, Sigma_k = niw.sample()
+            cluster_params.append((mu_k, Sigma_k))
+            k += 1
+
+        # Sample the data point from its assigned cluster
+        mu_k, Sigma_k = cluster_params[c[n]]
+        Y[n] = np.random.multivariate_normal(mu_k, Sigma_k)
+
+    return k, c, Y
+    #SOLUTION_END
 
 
 # +
@@ -838,6 +1373,7 @@ def plot_inf_gmm(N=10):
     plt.show()
 
 w = interact(plot_inf_gmm, N=(0,1000,10))
+plot_inf_gmm(1000)
 # -
 
 # <div class="alert alert-block alert-info">
@@ -845,7 +1381,22 @@ w = interact(plot_inf_gmm, N=(0,1000,10))
 # **Question 2.1.3** Explain the relationship between the Dirichlet distribution, a Dirichlet process, the Chinese restaurant process, and the stick-breaking construction.
 #     
 # **Answer**
-#     
+#
+# $\textbf{Dirichlet Distribution}$: This is a distribution over distributions defined by $\mathbf{p} \sim Dir(\alpha_1, \dots, \alpha_K)$ where $\mathbf{p}$ is a K-dimensional vector that sums to one. The probability density function (PDF) of the Dirichlet distribution of where $K \ge 2$ with parameter vector $\boldsymbol{\alpha} = (\alpha_1, \dots, \alpha_K)$ where $\alpha_i > 0$ is given by:
+# $$f(\mathbf{x}; \boldsymbol{\alpha}) = \frac{1}{\mathrm{B}(\boldsymbol{\alpha})} \prod_{i=1}^K x_i^{\alpha_i - 1}$$
+# where the beta dunction is used as a normalising constant.
+#
+# $\textbf{Dirichlet Process}$: A Dirichlet Process (DP) generalises the Dirichlet distribution. Instead of having a K-dimensional vector with K components, we generalise it to a distribution. We then govern this process using two parameters for $G \sim DP(\alpha, H)$. We use $\alpha \gt 0$ as a concentration paramter and the H as the prior for the distribution. When we sample from a DP we are sampling a point from a distribution that was selected over a different distribution.
+#
+# $\textbf{Chinese Restaurant}$: The idea is to create a distribution over some collection, say over integers ${1, \dots, n}$, by iteratively grouping an integer in a cluster of other integers that is already formed, or by forming a new cluster with some probability. It relates to the DP as we have some set of parameters $\theta_1, \cdots, \theta_n$ which control each cluster. Each $\theta_i \overset{\text{iid}}{\sim} G$ where G is the DP. Essentially we integrate out G so that we are left with some final distribution over all the parameters. 
+#
+# $\textbf{Stick breaking Process}$: The stick breaking process can be thought of taking one stick, and breaking off a piece. Then for every subsequent break, it is broken off of the remaining piece. In the context of DP, it governs how to construct the distribution for G for all the cluster parameters. Essentially, it is the process by which to find where a cluster resides and how much weight to assign to it. Ie suppose:
+# $$
+# G = \sum_{k=1}^\infty \pi_k \delta_{\theta_k^*}
+# $$
+# where $\theta_k^*$ dictates the parameter values, and $\pi_k $ dictates the probability of being assigned that cluster.
+#
+# $\textbf{Put together}$: The stick-breaking process provides an explicit method to generate a draw $G$ from the DP by sequentially defining its exact cluster weights ($\pi_k$) and locations ($\theta_k^*$). Then if we only focus on the predictive distribution of the observations, we obtain the Chinese Restaurant Process (CRP). In short: the stick-breaking process provides the generative view of the DP, while the CRP shows how the data points naturally cluster as a result of the DP.
 # </div>
 
 # #### Effect of the Concentration Parameter $\alpha$
@@ -857,7 +1408,23 @@ w = interact(plot_inf_gmm, N=(0,1000,10))
 
 # +
 # TODO
+# SOLUTION_START
+sample_size = 10000
+alpha_vals = [0.1, 0.8, 1.4, 2.0]
 
+for alpha in alpha_vals:
+    k, c, y = sample_inf_gmm(alpha, np.zeros(2), 0.1, 4, np.eye(2), sample_size)
+    plt.figure(figsize=(6, 6))
+    for i in range(k):
+        plt.scatter(y[c==i,0], y[c==i,1], s=8, alpha=0.6)
+    plt.xlim((np.min(y[:,0])-.5,np.max(y[:,0])+.5))
+    plt.ylim((np.min(y[:,1])-.5,np.max(y[:,1])+.5))
+    plt.title(f'alpha = {alpha}, k = {k}')
+    plt.xlabel('Dimension 1')
+    plt.ylabel('Dimension 2')
+    plt.legend(np.arange(k))
+    plt.show()
+# SOLUTION_END
 # -
 
 # ## 2.2. Markov Chain Inference Methods for DP Mixture Models
@@ -917,14 +1484,20 @@ class GibbsSampler:
         self.niw = NIW(mu0, lambda0, nu0, S0)      
         self.D = mu0.shape[0]
     
-    
+
     def log_marginal_likelihood(self, Y):
         if Y.ndim == 1:
             Y = Y.reshape(1,-1)
         N, D = Y.shape
         mu_n, lambda_n, nu_n, S_n = self.niw.posterior_params(Y)
 
-        # log_marginal = # TODO 
+        # SOLUTION_START
+        term1 = np.log(np.pi) * (-N * D / 2)
+        term2 = gamma_d(nu_n / 2, D) - gamma_d(self.niw.nu0 / 2, D)
+        term3 = (0.5 * self.niw.nu0 * np.linalg.slogdet(self.niw.S0)[1] - 0.5 * nu_n  * np.linalg.slogdet(S_n)[1])
+        term4 = D * 0.5 * (np.log(self.niw.lambda0) - np.log(lambda_n))
+        log_marginal = term1 + term2 + term3 + term4 # TODO
+        # SOLUTION_END
         return log_marginal
     
     
@@ -1002,7 +1575,56 @@ class GibbsSampler:
 #
 #
 # **Answer**
+# We start with the following, let $\theta_n = c_n,\mu, \Sigma$: 
+# $$
+# p(\mathbf{y}_n|\theta_n) \sim \mathcal{N}(\mu_{c_n}, \Sigma_{c_n}) \\
+# $$
+# Then by Neal's equation (3.1) we have:
+# $$p(\theta_n | \theta_{\lnot n}) = \frac{1}{n-1+\alpha} \sum_{j \neq n} \delta_{\theta_j}(\theta_n) + \frac{\alpha}{n-1+\alpha} p(\theta)$$
+# (Note: $p(\theta)$ represents the base distribution, which we evaluate for the new parameter $\theta_n$, which gets written as $p(\theta_n)$).
+# Then with Bayes theorem we have:
+# $$
+# \begin{align}
+# p(\theta_n|\theta_{\neg n}, \mathbf{y}_n) &= \frac{p(\theta_n,\theta_{\neg n}, \mathbf{y}_n)}{p(\theta_{\neg n}, \mathbf{y}_n)} \\
+# &\propto p(\theta_n, \theta_{\neg n}, \mathbf{y}_n) \\
+# &\propto p(\mathbf{y}_n|\theta_n, \theta_{\neg n})p(\theta_n| \theta_{\neg n}) 
+# \end{align}
+# $$
+# Because the observation $\mathbf{y}_n$ is conditionally independent of all other parameters $\theta_{\lnot n}$ given its own parameter $\theta_n$, we can drop $\theta_{\lnot n}$ from the likelihood term:
+# $$p(\theta_n|\theta_{\neg n}, \mathbf{y}_n) \propto p(\mathbf{y}_n|\theta_n)p(\theta_n| \theta_{\neg n}) $$
+# We can thus continue:
+# $$
+# \begin{align}
+# &= p(\mathbf{y}_n|\theta_n)\left[\frac{1}{n-1+\alpha} \sum_{j \neq n} \delta_{\theta_j}(\theta_n) + \alpha p(\theta_n)\right] \\
+# &\propto p(\mathbf{y}_n|\theta_n)\left[\sum_{j \neq n} \delta_{\theta_j}(\theta_n) + \alpha p(\theta_n)\right]\\
+# &\propto \sum_{j \neq n} p(\mathbf{y}_n|\theta_n)\delta_{\theta_j}(\theta_n) + p(\mathbf{y}_n|\theta_n)\alpha p(\theta_n)\\
+# \end{align}
+# $$
 #
+# At this point we analyse the dirac function in which it has a property where $\delta_{\theta_j}(\theta_n)$ is $0$ everywhere except where $\theta_n = \theta_j$.
+# $$
+# p(\theta_n|\theta_{\neg n}, \mathbf{y}_n) = \sum_{j \neq n} p(\mathbf{y}_n|\theta_j)\delta_{\theta_j}(\theta_n) + p(\mathbf{y}_n|\theta_n)\alpha p(\theta_n)\\
+# $$
+#
+# Then in the definitions we defined: 
+# $$
+# \begin{align}
+# q_{n,j} &= b\cdot p(\mathbf{y}_n|\theta_j) = b\cdot \mathcal{N}(\mathbf{y}_n|\mu_{c_j}, \Sigma_{c_j}) \\
+# q_0 &= b \alpha\cdot\int p(\mathbf{y}_n|\theta)p(\theta)\:d\theta = b\alpha \cdot p(\mathbf{y}_n)
+# \end{align}
+# $$
+#
+# Therefore subbing in for $q_{n,j}$ and discarding the constant we get:
+# $$
+# \begin{align}
+# p(\theta_n|\theta_{\neg n}, \mathbf{y}_n) &= \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) + \alpha p(\mathbf{y}_n|\theta_n) p(\theta_n)\\
+# &= \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) + \alpha\left[p(\mathbf{y}_n|\theta_n) p(\theta_n)\right]\frac{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta}{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta} \\
+# &= \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  \left[\alpha \int p(\mathbf{y}_n | \theta) p(\theta) d\theta\right]\left[\frac{p(\mathbf{y}_n|\theta_n) p(\theta_n)}{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta}\right] \\
+# &= \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  \left[\alpha \cdot p(\mathbf{y}_n)\right]\left[\frac{p(\mathbf{y}_n|\theta_n) p(\theta_n)}{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta}\right] \\
+# &= \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  q_0\left[\frac{p(\mathbf{y}_n|\theta_n) p(\theta_n)}{\int p(\mathbf{y}_n | \theta) p(\theta) d\theta}\right] \text{ (Use Bayes rule to simplify)} \\
+# &= \sum_{j \neq n} q_{n,j}\delta_{\theta_j}(\theta_n) +  q_0 p(\theta_n|\mathbf{y}_n) \\
+# \end{align}
+# $$
 # </div>
 
 # <div class="alert alert-block alert-info">
@@ -1047,9 +1669,18 @@ class GibbsSampler1(GibbsSampler):
         p = np.zeros(len(js)+1)
         
         for i, j in enumerate(js):
-            # p[i] = # TODO: Compute (unnormalized) prob of choosing existing mixture j
-         
-        # p[-1] = # TODO: Compute (unnormalized) prob of choosing new mixture
+            # SOLUTION_START
+            # TODO: Compute (unnormalized) prob of choosing existing mixture j
+            p[i] = self.counts[j] * multivariate_normal.pdf(
+                Y[n],
+                mean=theta[j][0],
+                cov=theta[j][1]
+            ) 
+        
+        marginal_likelihood = self.log_marginal_likelihood(Y[n])
+        # TODO: Compute (unnormalized) prob of choosing new mixture
+        p[-1] = self.alpha * np.exp(self.log_marginal_likelihood(Y[n]))
+        # SOLUTION_END
         
         choice = np.random.choice(len(js)+1, p=p/np.sum(p))
         if choice < len(js):
@@ -1178,10 +1809,37 @@ class GibbsSampler2(GibbsSampler):
     
     def sample_c(self, c_not_n, y_n, phi):
         # TODO: Implement
-    
+        # SOLUTION_START
+        N = len(c_not_n) + 1
+        m_not_nk = np.array([np.sum(c_not_n == c_k) for c_k in phi.keys()])
+        p_yn_given_phik = np.array([multivariate_normal(mean=phi[c_k][0], cov=phi[c_k][1]).pdf(y_n) for c_k in phi.keys()])
+        denominator = N - 1 + self.alpha
+        p_c_given_y = np.zeros(len(phi) + 1)
+        for i, c_k in enumerate(phi.keys()):
+            p_c_given_y[i] = (m_not_nk[i] / denominator) * p_yn_given_phik[i]
+        marginal_likelihood = self.log_marginal_likelihood(y_n)
+        p_c_given_y[-1] = (self.alpha / denominator) * np.exp(marginal_likelihood)
+        p_c_given_y /= np.sum(p_c_given_y)
+        choice = np.random.choice(len(p_c_given_y), p=p_c_given_y)
+        if choice < len(phi):
+            c_n = list(phi.keys())[choice]
+        else:
+            c_n = max(phi.keys()) + 1
+            mu_n, lambda_n, nu_n, S_n = self.niw.posterior_params(y_n.reshape(1, -1))
+            niw_post = NIW(mu_n, lambda_n, nu_n, S_n)
+            phi[c_n] = list(niw_post.sample())
+        return c_n
+        # SOLUTION_END
     
     def sample_phi(self, Y, c, c_k):
         # TODO: Implement
+        # SOLUTION_START
+        Y_k = Y[c == c_k]
+        mu_n, lambda_n, nu_n, S_n = self.niw.posterior_params(Y_k)
+        niw_posterior = NIW(mu_n, lambda_n, nu_n, S_n)
+        mean, cov = niw_posterior.sample()
+        return mean, cov
+        # SOLUTION_END
         
     
     def sample_params(self, Y, c, phi):        
@@ -1231,17 +1889,39 @@ class GibbsSampler2(GibbsSampler):
 gibbs2 = GibbsSampler2(alpha=0.1, mu0=np.zeros(2), lambda0=0.1, nu0=4, S0=np.eye(2))
 c2_samples, phi2_samples, log_posterior2 = gibbs2.run(Y, num_iter=200)
 
-# +
 # TODO: Plot log-posterior
+# SOLUTION_START
+plt.plot(log_posterior2)
+plt.xlabel('Iteration')
+plt.ylabel(r'$\log \: p(c, \phi|Y)$')
+plt.show()
+# SOLUTION_END
 
 
-# +
 # TODO: Check evolution of the number of clusters used
+# SOLUTION_START
+num_clusters = [len(phi) for phi in phi2_samples]
+plt.plot(num_clusters)
+plt.ylabel('Number of components')
+plt.xlabel('Iteration')
+plt.show()
+# SOLUTION_END
 
 
 # +
 # TODO: Plot cluster assignments and confidence ellipses
+# SOLUTION_START
+c = c2_samples[-1]
+phi = phi2_samples[-1]
+K = len(phi)
 
+for i, k in enumerate(phi.keys()):
+    d = Y[c==k].reshape(-1,2)
+    plt.scatter(d[:,0], d[:,1], alpha=0.6)
+    plt.scatter(phi[k][0][0], phi[k][0][1], marker='x', color='black', s=100,linewidths=2.0)
+    confidence_ellipse(phi[k][1], phi[k][0], plt.gca(), n_std=2.0, edgecolor='black')
+    plt.show()
+# SOLUTION_END
 # -
 
 # ### Algorithm 3 - Collapsed Gibbs Sampling
@@ -1298,14 +1978,62 @@ class GibbsSampler3(GibbsSampler):
     
     def sample_c(self, c_not_n, y_n, y_not_n):
         # TODO: Implement
-        
+        N = len(c_not_n) + 1
+        unique_clusters = np.unique(c_not_n)
+        denominator = N - 1 + self.alpha
+        p_c_given_y = np.zeros(len(unique_clusters) + 1)
+
+        # existing clusters
+        for i, c_k in enumerate(unique_clusters):
+            Y_k = y_not_n[c_not_n == c_k]
+            mu_n, lambda_n, nu_n, S_n = self.niw.posterior_params(Y_k)
+            df = nu_n - self.D + 1
+            scale = S_n * (lambda_n + 1) / (lambda_n * df)
+            p_k_yn = multivariate_t(loc=mu_n, shape=scale, df=df).pdf(y_n)
+            p_c_given_y[i] = (np.sum(c_not_n == c_k) / denominator) * p_k_yn
+
+        mu_n, lambda_n, nu_n, S_n = self.niw.posterior_params(y_n.reshape(1, -1))
+        df = nu_n - self.D + 1
+        scale = S_n * (lambda_n + 1) / (lambda_n * df)
+        p_new = multivariate_t(loc=mu_n, shape=scale, df=df).pdf(y_n)
+        p_c_given_y[-1] = (self.alpha / denominator) * p_new
+
+        # numerical stability
+        p_c_given_y = np.maximum(p_c_given_y, 1e-300)
+        p_c_given_y /= np.sum(p_c_given_y)
+        choice = np.random.choice(len(p_c_given_y), p=p_c_given_y)
+
+        if choice < len(unique_clusters):
+            return unique_clusters[choice]
+        else:
+            return (np.max(c_not_n) + 1) if len(c_not_n) > 0 else 0
     
     def sample_params(self, Y, c):  
         # TODO: Implement
-        
-    
+        N = Y.shape[0]
+
+        for n in range(N):
+            y_n = Y[n]
+
+            mask = np.arange(N) != n
+            c_not_n = c[mask]
+            y_not_n = Y[mask]
+
+            c_n = self.sample_c(c_not_n, y_n, y_not_n)
+            c[n] = c_n
+
+        return c
+
     def expected_phi(self, Y, c):
         # TODO: Implement
+        phi = {}
+        for c_k in np.unique(c):
+            Y_k = Y[c == c_k]
+            mu_n, lambda_n, nu_n, S_n = self.niw.posterior_params(Y_k)
+            phi[c_k] = [mu_n, S_n / (nu_n - self.D - 1)]
+
+        return phi
+
     
     
     def run(self, Y, num_iter=100):
@@ -1327,17 +2055,39 @@ class GibbsSampler3(GibbsSampler):
 gibbs3 = GibbsSampler3(alpha=0.1, mu0=np.zeros(2), lambda0=0.1, nu0=4, S0=np.eye(2))
 c3_samples, log_posterior3 = gibbs3.run(Y, num_iter=200)
 
-# +
 # TODO: Plot log-posterior
+plt.plot(log_posterior3)
+plt.xlabel('Iteration')
+plt.ylabel(r'$\log \: p(c, \phi|Y)$')
+plt.show()
 
-
-# +
 # TODO: Check evolution of the number of clusters used
+n_clusters = [len(np.unique(c)) for c in c3_samples]
+plt.plot(n_clusters)
+plt.ylabel('Number of components')
+plt.xlabel('Iteration')
+plt.show()
 
 
 # +
 # TODO: Plot cluster assignments and confidence ellipses
+c_final = c3_samples[-1]
+phi_final = gibbs3.expected_phi(Y, c_final)
 
+plt.figure(figsize=(6, 5))
+for c_k in np.unique(c_final):
+    mask = c_final == c_k
+    plt.scatter(Y[mask, 0], Y[mask, 1], label=f'Cluster {c_k}', s=20)
+    mu = phi_final[c_k][0]
+    plt.scatter(*mu, marker='x', s=100, color='black')
+    confidence_ellipse(phi_final[c_k][1], mu, plt.gca(), n_std=2.0, edgecolor='black', alpha=0.5)
+
+plt.xlabel('$y_1$')
+plt.ylabel('$y_2$')
+plt.title(f'Cluster assignments (iteration 200, K={len(np.unique(c_final))})')
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7)
+plt.tight_layout()
+plt.show()
 # -
 
 # <div class="alert alert-block alert-info">
@@ -1345,7 +2095,14 @@ c3_samples, log_posterior3 = gibbs3.run(Y, num_iter=200)
 # **Question 2.2.2** Summarize in your own words the difference between the 3 algorithms above, and how these differences impact the results.  Focus on how the later algorithms address drawbacks in the earlier algorithms, and any differences in their applicability.
 #     
 # **Answer**
-#     
+# The main difference between these three algorithms lies in their difference in computational efficiency and how the change the state space of the sampler.
+#
+# $\textbf{Algorithm 1}$: The first algorithm computers the markov chain over parameter vector $\theta_n$ for each data point $n$. The core process is to take an observation $n$, and remove any assumption of the parameter value that previously generated it, $\theta_n$, then you choose between taking the parameter value of another data point $j$, $\theta_j$, or you draw a completely new parameter from the base distribution $p(\theta_n|\mathbf{y}_n)$. The reasoning behind this is that if two data points are in the same cluster, they should share the exact same parameter values that generated them. The main drawback is the fact that our parameter values are tied strictly to the data points individually. This means that we cannot update the parameters of a cluster as a whole. To shift a cluster's parameters, every single data point in that cluster would have to independently draw the exact same new parameter value one by one. Because the probability of this happening is near zero, the Markov chain gets stuck. $\textit{Applicability}$: Useful only with conjugate models and only acts as a baseline.
+#
+# $\textbf{Algorithm 2}$: The second algorithm takes a different approach to the first by managing cluster assignments with each cluster assignment having its own cluster parameters in $\mathbf{\phi}$. So the main approach is to first initialise the cluster assignments of each observation in $\mathbf{c}$, and initialise $\phi=(\phi_k : k \in \{c_1, \ldots,c_N\})$. The idea is that we loop over all the observations, removing any cluster parameters if not previously, and update the cluster assignment to a point in one of two ways. Either you can assign the observation an existing cluster or a new cluster. But at this stage we hold all the cluster parameters, $\mathbf{\phi}$ fixed. This can be seen as a step of assigning points to clusters. Now for updating the clusters parameters, we hold $\textbf{c}$ fixed and update each $\phi_k$ per cluster by drawing from the posterior distribution conditioned on all the points currently assigned to that cluster. This allows for smoother updates of the parameters considering all observations currently assigned to a cluster, and not singular observations. $\textit{Applicability}$: Used when you have non-conjugate models.
+#
+# $\textbf{Algorithm 3}:$ The final algorithm removes all dependence on cluster parameters $\phi$ by integrating them out. Instead, for each observation we draw a new cluster assignment, we evaluate the posterior distribution $p_k(\mathbf{y}_n | \mathbf{y}_{\neg n, k})$. The point is to determine how likely the current observation is to belong to a certain class assignment $c_k$ given all the data points that are already present in that class. By removing the dependency on $\phi$, and leveraging conjugacy between distributions, allows us to converge faster due to less variance as we sample fewer parameters. $\textit{Applicability}$: Used when you have conjugate prior distributions.
+#
 # </div>
 
 # <div class="alert alert-block alert-info">
@@ -1353,7 +2110,7 @@ c3_samples, log_posterior3 = gibbs3.run(Y, num_iter=200)
 # **Question 2.2.3** In some of the algorithms above, the fit exhibited quite a large number of clusters compared to the true number of clusters (5).  This seems like evidence of overfitting.  Discuss.  
 #     
 # **Answer** 
-#
+# For starters, each algorithm is sampling from the same base posterior distribution. When looking at the above results, the only algorithm that produces more clusters than the true amount is in algorithm 1. This is because of the previously mentioned in question 2.2.2 where the markov chain gets stuck. We can see that if there is an observation that lies even slightly outside of the cluster, the algorithm assigns it a brand new cluster. The new cluster cannot grow its bounds to accept more observations. In terms of overfitting, none of these algorithms are presenting evidence of overfitting. Overfitting in this context one would see clusters forming on the outlier points of the data. This would be the algorithm memorising the training data. In algorithm one, the excess clusters are not the result of overfitting, but as the result of the mechanical failures of the algorithm.
 # </div>
 
 # # References
@@ -1361,5 +2118,3 @@ c3_samples, log_posterior3 = gibbs3.run(Y, num_iter=200)
 # \[1\] Rasmussen, C.E. and Williams, C.K.I. (2006). _Gaussian Processes for Machine Learning_.  MIT Press: Cambridge, USA. http://www.gaussianprocess.org/gpml/chapters/RW.pdf
 #
 # \[2\] Neal, R.M. (2000). Markov Chain Sampling Methods for Dirichlet Process Mixture Models. _Journal of Computational and Graphical Statistics_, 9(2): 249-265. http://www.stat.columbia.edu/npbayes/papers/neal_sampling.pdf
-
-
