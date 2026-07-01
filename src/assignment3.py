@@ -8,7 +8,7 @@
 #       format_version: '1.5'
 #       jupytext_version: 1.17.1
 #   kernelspec:
-#     display_name: apm
+#     display_name: Python 3 (ipykernel)
 #     language: python
 #     name: python3
 # ---
@@ -44,7 +44,9 @@ from utils import confidence_ellipse
 # <div class="alert alert-block alert-info">
 #     
 # **Student numbers:** 
-# 23248815, 25849646, 25853937
+# #### 23248815 - Lehumo Motebu <br>
+# #### 25849646 - Grant Booysen <br>
+# #### 25853937 - Alex Bossert
 # </div>
 
 # ### General Instructions
@@ -140,7 +142,7 @@ plt.show()
 #     
 # where $\bar{\mathbf{w}}=\frac{1}{\sigma^2_n}\left(\frac{1}{\sigma^2_n}XX^T+\Sigma_p^{-1}\right)^{-1}X\mathbf{y}$, and $\mathbf{w}$ is a vector of weights of a linear regression model.
 #     
-# **Answer**
+# **Answer (Grant and Lehumo)**
 # The posterior is given as 
 # $$
 # p(\mathbf{w}|X,\mathbf{y}) = \frac{p(\mathbf{y}|X,\mathbf{w})p(\mathbf{w})}{p(\mathbf{y}|X)}
@@ -172,7 +174,7 @@ plt.show()
 #     
 # **Exercise 1.2** Motivate the results in (2.9) of \[[1](#References)\] in terms of the results about the mean, covariance matrix, and distribution of linear functions of (Gaussian) variables.
 #     
-# **Answer**
+# **Answer (Lehumo)**
 # The result in (2.9) follows directly from the fact that a linear function of a Gaussian random vector is itself Gaussian. From Exercise 1.1 I have the posterior over the weights, $p(\mathbf{w}\mid X,\mathbf{y}) = \mathcal{N}(\bar{\mathbf{w}}, A^{-1})$, where $\bar{\mathbf{w}} = \frac{1}{\sigma_n^2}A^{-1}X\mathbf{y}$ and $A = \frac{1}{\sigma_n^2}XX^T + \Sigma_p^{-1}$.
 #
 # For a new test input $\mathbf{x}_*$, the prediction in this linear model is $f_* = \mathbf{x}_*^T\mathbf{w}$, which is just a linear combination of the entries of the Gaussian vector $\mathbf{w}$. The relevant standard result is that if $\mathbf{w} \sim \mathcal{N}(\mu, \Sigma)$ and $z = \mathbf{a}^T\mathbf{w}$, then $z$ is Gaussian with mean $\mathbf{a}^T\mu$ and variance $\mathbf{a}^T\Sigma\mathbf{a}$. I can therefore read off the predictive distribution directly, with no new integration, by setting $\mathbf{a} = \mathbf{x}_*$, $\mu = \bar{\mathbf{w}}$, and $\Sigma = A^{-1}$.
@@ -413,7 +415,7 @@ Image('./figures/gp_posterior_plot_sklearn.png')
 # **Exercise 1.3.1** Perform the conditioning required to derive the parameters of the posterior distribution $p(\mathbf{f}_*| X_*, X, \mathbf{f})$ given the joint Gaussian prior distribution $p\left(\left. \begin{bmatrix}\mathbf{f} \\ \mathbf{f}_*\end{bmatrix}\right|X,X_*\right)$ (See equations (2.18) and (2.19) and the surrounding discussion in \[[1](#References)\] for more detail).
 #
 #     
-# **Answer**
+# **Answer (Grant)**
 # The generic joint distribution from A.5 \[[1](#References)\] is defined as:
 # $$\begin{bmatrix} \mathbf{x} \\ \mathbf{y} \end{bmatrix} \sim \mathcal{N}\left( \begin{bmatrix} \mu_x \\ \mu_y \end{bmatrix}, \begin{bmatrix} A & C \\ C^T & B \end{bmatrix} \right)$$
 # and secondly the generic conditional distribution in A.6 is:
@@ -425,7 +427,7 @@ Image('./figures/gp_posterior_plot_sklearn.png')
 # Because we are assuming a zero-mean GP prior:
 # $$\mu_x = \mathbf{0}$$
 # $$\mu_y = \mathbf{0}$$
-# Next, we map the covariance matrices. The joint distribution provided in the problem formulation places $\mathbf{f}$ in the top block and $\mathbf{f}_*$ in the bottom block. To map this to the generic formula where $\mathbf{x}$ (which we defined as $\mathbf{f}_*$) is the top block, you cannot just take the top-left matrix. You must align the matrices to their respective variables:
+# Next, we map the covariance matrices. The joint distribution provided in the problem formulation places $\mathbf{f}$ in the top block and $\mathbf{f}_*$ in the bottom block. To map this to the generic formula must align the matrices to their respective variables:
 # $$A = \text{cov}(\mathbf{f}_*, \mathbf{f}_*) = K(X_*,X_*)$$
 # $$B = \text{cov}(\mathbf{f}, \mathbf{f}) = K(X,X)$$
 # $$C^T = \text{cov}(\mathbf{f}_*, \mathbf{f}) = K(X_*,X)$$
@@ -452,7 +454,7 @@ Image('./figures/gp_posterior_plot_sklearn.png')
 #     
 # **Exercise 1.3.2** Explain how the computations of Algorithm 2.1 \[[1](#References)\] yield the values in (2.25), (2.26) and (2.30).
 #     
-# **Answer**
+# **Answer (Grant, Lehumo)**
 # We look at the first part of the algorithm, line 2, for the cholesky decomposition in which we obtain $L = cholesky(K+\sigma_{n}^2I)$. We do the decomposition to prevent needing to do the inverse calculation for $K+\sigma_{n}^2I$. However we know that because $K+\sigma_{n}^2I$ is symmetric and positive definite we have $K + \sigma_n^2 I = L L^T$. The backslash operator is used to refer to solving a system of linear equations ie $A \backslash b$ denotes solving the linear system $Ax = b$ for $x$. Therefore to calculate on line 3 $\mathbf{\alpha}=L^T\backslash(L\backslash\mathbf{y})$, we can do:
 # $$
 # \mathbf{\alpha}=L^T\backslash(L\backslash\mathbf{y}) \\
@@ -664,8 +666,8 @@ plot(X1_noise, y1_noise, X_star, y_pred_mean_noise_high, np.sqrt(np.diag(y_pred_
 
 # <div class="alert alert-block alert-info">
 #
-# **Discussion**
-# The effect of the sigma term on the posterior of the Gaussian process is evident in the plots above. When we estimate there to be no observation noise in the first plot, our predicted mean follows the observations exactly, and there is no spread of potential values at the respective $x$ locations. This means our model for $f(x)$ overfits, treating the observation noise as if it were signal to be captured exactly. When we set the estimated observation noise to the actual value, the confidence interval widens and almost all observations are captured within the estimate. This is the ideal scenario, where we have correctly estimated the true level of noise, and our model can generalise to a sensible distribution of potential points rather than memorising the data. In the last example, where we overestimate the observation noise relative to what was actually used to generate the data, we obtain an overly conservative estimate of where the points could plausibly have come from. By accounting for more noise than is actually present, we have artificially increased the variance of our predictive distribution, and consequently end up with more uncertainty about where the observations lie.
+# **Discussion (Grant, Alex)**
+# The effect of the sigma term on the posterior of the Gaussian process is evident in the plots above. When we estimate there to be no observation noise in the first plot, our predicted mean follows the observations exactly, and there is no spread of potential values at the respective $x$ locations. This means our model for $f(x)$ overfits, treating the observation noise as if it were signal to be captured exactly. When we set the estimated observation noise to the actual value, the confidence interval widens and almost all observations are captured within the estimate. This is the ideal scenario, where we have correctly estimated the true level of noise, and our model can generalise to a sensible distribution of potential points rather than memorising the data. In the last example, where we overestimate the observation noise relative to what was actually used to generate the data, we obtain an overly conservative estimate of where the points could plausibly have come from. By accounting for more noise than is actually present, we have artificially increased the variance of our predictive distribution, and consequently end up with more uncertainty about where the observations lie. To put it in machine learning terms, it acts as a regulariser, where the smaller the sigma term is the more likely we are to overfit, and too large underfit.
 #     
 # </div>
 
@@ -745,6 +747,7 @@ def marginal_likelihood(X, y, kernel, sigma_eps=0):
 # numpy functions: meshgrid, argmax, unravel_index . Potentially
 # useful matplotlib function: matplotlib.pyplot.pcolormesh ,
 # matplotlib.pyplot.colorbar .
+# SOLUTION_START
 l_grid = np.linspace(0.05, 0.16, 100)
 s_grid = np.linspace(0.5, 2, 100)
 L_grid, S_grid = np.meshgrid(l_grid, s_grid)
@@ -771,6 +774,7 @@ plt.scatter(optimal_s, optimal_l, color='red', label='Max log p(y)', marker='x')
 
 plt.legend()
 plt.show()
+# SOLUTION_END
 # -
 
 Image('./figures/grid_search.png')
@@ -966,7 +970,12 @@ Image('./figures/2d_regression_slice_x2.png')
 #     
 # </div>
 
+# <div class="alert alert-block alert-info">
+# Grant   
+# </div>
+
 # +
+# SOLUTION_START
 from sklearn.gaussian_process.kernels import RBF, ExpSineSquared, ConstantKernel as C
 
 X_train = np.sort(np.random.uniform(0, 10, 40)).reshape(-1, 1)
@@ -1008,8 +1017,7 @@ ax2.legend()
 
 plt.tight_layout()
 plt.show()
-
-
+# SOLUTION_END
 # -
 
 # <div class="alert alert-block alert-info">
@@ -1046,7 +1054,7 @@ plt.show()
 #
 # **Question 2.1** Explain how the exchangeability assumption is related to the i.i.d. assumption, and how de Finetti's theorem allows us to move between them.
 #
-# **Answer**
+# **Answer (Grant, Lehumo)**
 # The exchangeable property states that a sequence of random variables is exchangeable if their joint distributions are invariant to ordering. Ie:
 # $$p(Y_1, \ldots, Y_N) = p(Y_{\pi(1)}, \ldots, Y_{\pi(N)})$$
 # where $\pi$ is a permutation of the indices $\{1, \dots, N\}$. 
@@ -1121,7 +1129,7 @@ plt.show()
 #     
 # **Question 2.2** Give the formulae for the posterior parameters of the NIW in terms of the parameters of the prior, the data points $\mathbf{y}_i$, and the sample mean $\bar{\mathbf{y}}$. Also give a description of the interpretation of each NIW parameter. 
 #
-# **Answer**
+# **Answer (Grant, Lehumo)**
 # Given $N$ independent observations $\mathbf{y}_i$ of dimension $D$, with sample mean $\bar{\mathbf{y}} = \frac{1}{N} \sum_{i=1}^N \mathbf{y}_i$, the posterior parameters for $\text{NIW}(\mu_N, \lambda_N, \nu_N, S_N)$ are computed as follows:
 # $$\begin{aligned}
 # \lambda_N &= \lambda_0 + N \\
@@ -1204,7 +1212,7 @@ class NIW:
 # \frac{\int p(c_n=k,\mathbf{c}_{1:n-1}|\mathbf{p})p(\mathbf{p})\:d\mathbf{p}}{\int p(\mathbf{c}_{1:n-1}|\mathbf{p})p(\mathbf{p})\:d\mathbf{p}} =  \frac{m_{n,k} + \frac{\alpha}{K}}{n-1 + \alpha}
 # $$
 #
-# **Answer**
+# **Answer (Grant, Lehumo)**
 # Considering the prior:
 # $$
 # \begin{aligned}
@@ -1268,7 +1276,7 @@ class NIW:
 #
 # **Question 2.1.2** Explain how the second formula above, $p(c_n \neq c_j \:\: \forall \:\: j < n|\mathbf{c}_{1:n-1}) \rightarrow \frac{\alpha}{n-1+\alpha}$, is derived.
 #     
-# **Answer** 
+# **Answer (Grant, Lehumo)** 
 # Since we have that 
 # $$
 # \begin{aligned}
@@ -1396,7 +1404,7 @@ plot_inf_gmm(1000)
 #
 # **Question 2.1.3** Explain the relationship between the Dirichlet distribution, a Dirichlet process, the Chinese restaurant process, and the stick-breaking construction.
 #     
-# **Answer**
+# **Answer (Grant, Lehumo)**
 #
 # $\textbf{Dirichlet Distribution}$: This is a distribution over distributions defined by $\mathbf{p} \sim Dir(\alpha_1, \dots, \alpha_K)$ where $\mathbf{p}$ is a K-dimensional vector that sums to one. The probability density function (PDF) of the Dirichlet distribution of where $K \ge 2$ with parameter vector $\boldsymbol{\alpha} = (\alpha_1, \dots, \alpha_K)$ where $\alpha_i > 0$ is given by:
 # $$f(\mathbf{x}; \boldsymbol{\alpha}) = \frac{1}{\mathrm{B}(\boldsymbol{\alpha})} \prod_{i=1}^K x_i^{\alpha_i - 1}$$
@@ -1423,7 +1431,7 @@ plot_inf_gmm(1000)
 # </div>
 
 # +
-# TODO
+# SOLUTION_START
 sample_size = 10000
 alpha_vals = [0.1, 0.8, 1.4, 2.0]
 
@@ -1447,6 +1455,7 @@ for alpha in alpha_vals:
         v += 1
 
 plt.show()
+# SOLUTION_END
 # -
 
 # ## 2.2. Markov Chain Inference Methods for DP Mixture Models
@@ -1518,7 +1527,7 @@ class GibbsSampler:
         term2 = gamma_d(nu_n / 2, D) - gamma_d(self.niw.nu0 / 2, D)
         term3 = (0.5 * self.niw.nu0 * np.linalg.slogdet(self.niw.S0)[1] - 0.5 * nu_n  * np.linalg.slogdet(S_n)[1])
         term4 = D * 0.5 * (np.log(self.niw.lambda0) - np.log(lambda_n))
-        log_marginal = term1 + term2 + term3 + term4 # TODO
+        log_marginal = term1 + term2 + term3 + term4 
         # SOLUTION_END
         return log_marginal
     
@@ -1596,7 +1605,7 @@ class GibbsSampler:
 # $$
 #
 #
-# **Answer**
+# **Answer (Grant, Lehumo)**
 # We start with the following, let $\theta_n = c_n,\mu, \Sigma$: 
 # $$
 # p(\mathbf{y}_n|\theta_n) \sim \mathcal{N}(\mu_{c_n}, \Sigma_{c_n}) \\
@@ -1642,7 +1651,7 @@ class GibbsSampler:
 # \end{aligned}
 # $$
 #
-# $\textbf{Ai declaration}$: For this question, we made use of ChatGPT to give the idea of using the dirac function property to simplify the expression.
+# $\textbf{Ai declaration}$: For this question, we made use of ChatGPT to give the idea of using the dirac function property to simplify the expression. All the other math was done by hand.
 # </div>
 
 # <div class="alert alert-block alert-info">
@@ -2129,7 +2138,7 @@ plt.show()
 #
 # **Question 2.2.2** Summarize in your own words the difference between the 3 algorithms above, and how these differences impact the results.  Focus on how the later algorithms address drawbacks in the earlier algorithms, and any differences in their applicability.
 #     
-# **Answer**
+# **Answer (Grant, Lehumo)**
 # The main difference between these three algorithms lies in their difference in computational efficiency and how the change the state space of the sampler.
 #
 # $\textbf{Algorithm 1}$: The first algorithm computers the markov chain over parameter vector $\theta_n$ for each data point $n$. The core process is to take an observation $n$, and remove any assumption of the parameter value that previously generated it, $\theta_n$, then you choose between taking the parameter value of another data point $j$, $\theta_j$, or you draw a completely new parameter from the base distribution $p(\theta_n|\mathbf{y}_n)$. The reasoning behind this is that if two data points are in the same cluster, they should share the exact same parameter values that generated them. The main drawback is the fact that our parameter values are tied strictly to the data points individually. This means that we cannot update the parameters of a cluster as a whole. To shift a cluster's parameters, every single data point in that cluster would have to independently draw the exact same new parameter value one by one. Because the probability of this happening is near zero, the Markov chain gets stuck. $\textit{Applicability}$: Useful only with conjugate models and only acts as a baseline.
@@ -2144,7 +2153,7 @@ plt.show()
 #
 # **Question 2.2.3** In some of the algorithms above, the fit exhibited quite a large number of clusters compared to the true number of clusters (5).  This seems like evidence of overfitting.  Discuss.  
 #     
-# **Answer** 
+# **Answer (Grant)** 
 # For starters, each algorithm is sampling from the same base posterior distribution. When looking at the above results, the only algorithm that produces more clusters than the true amount is in algorithm 1. This is because of the previously mentioned in question 2.2.2 where the markov chain gets stuck. We can see that if there is an observation that lies even slightly outside of the cluster, the algorithm assigns it a brand new cluster. The new cluster cannot grow its bounds to accept more observations. In terms of overfitting, none of these algorithms are presenting evidence of overfitting. Overfitting in this context one would see clusters forming on the outlier points of the data. This would be the algorithm memorising the training data. In algorithm one, the excess clusters are not the result of overfitting, but as the result of the mechanical failures of the algorithm.
 # </div>
 
